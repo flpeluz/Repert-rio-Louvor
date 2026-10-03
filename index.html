@@ -19,24 +19,41 @@
 </head>
 <body class="min-h-screen pb-14 selection:bg-indigo-500 selection:text-white">
   <div class="max-w-md mx-auto px-4 pt-6">
-    <!-- Cabeçalho -->
+    
+    <!-- Cabeçalho com Logo da Igreja -->
     <header class="flex items-center justify-between pb-4 border-b border-slate-800/80">
       <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
-          <i data-lucide="music-2" class="w-5 h-5"></i>
+        <div class="w-11 h-11 rounded-2xl bg-slate-900 border border-slate-700/60 flex items-center justify-center overflow-hidden shrink-0 shadow-inner">
+          <img 
+            src="Logo VCD.png" 
+            alt="Logo Igreja" 
+            class="w-full h-full object-contain p-1"
+            onerror="this.onerror=null; this.parentElement.innerHTML='<i data-lucide=\'church\' class=\'w-5 h-5 text-indigo-400\'></i>'; lucide.createIcons();" 
+          />
         </div>
         <div>
-          <h1 class="text-lg font-bold tracking-tight text-white leading-tight">Ministério de Louvor</h1>
-          <p class="text-xs text-slate-400 font-medium">Repertório do Mês</p>
+          <h1 class="text-base font-bold tracking-tight text-white leading-tight">Ministério de Louvor</h1>
+          <p class="text-xs text-slate-400 font-medium">Repertório de Cultos</p>
         </div>
       </div>
-      <button onclick="carregarRepertorio()" title="Recarregar dados" class="w-9 h-9 rounded-xl bg-slate-800/80 border border-slate-700/60 hover:bg-slate-700 active:scale-95 transition flex items-center justify-center">
+      
+      <button onclick="carregarRepertorio(true)" title="Recarregar repertório" class="w-9 h-9 rounded-xl bg-slate-800/80 border border-slate-700/60 hover:bg-slate-700 active:scale-95 transition flex items-center justify-center">
         <i data-lucide="rotate-cw" id="icon-refresh" class="w-4 h-4 text-slate-300"></i>
       </button>
     </header>
 
-    <!-- Barra de Filtros -->
-    <div class="flex gap-2 overflow-x-auto py-4 no-scrollbar items-center" id="container-filtros">
+    <!-- Filtro do Mês de Referência -->
+    <div class="mt-4 flex items-center justify-between bg-slate-900/90 border border-slate-800 p-2 rounded-xl">
+      <span class="text-xs font-semibold text-slate-400 pl-2 flex items-center gap-1.5">
+        <i data-lucide="calendar" class="w-3.5 h-3.5 text-indigo-400"></i>
+        Mês:
+      </span>
+      <select id="seletor-mes" onchange="mudarMes(this.value)" class="bg-slate-800 text-slate-200 text-xs font-semibold rounded-lg px-3 py-1.5 border border-slate-700 outline-none focus:border-indigo-500 transition">
+      </select>
+    </div>
+
+    <!-- Barra de Filtros de Culto -->
+    <div class="flex gap-2 overflow-x-auto py-3 no-scrollbar items-center" id="container-filtros">
       <button onclick="filtrarDia('TODOS')" data-filtro="TODOS" class="filtro-btn px-4 py-1.5 rounded-full text-xs font-semibold bg-indigo-600 text-white shadow-sm whitespace-nowrap transition">
         Todos
       </button>
@@ -51,11 +68,11 @@
       </button>
     </div>
 
-    <!-- Lista de Louvores -->
-    <main id="lista-musicas" class="space-y-4">
+    <!-- Lista de Louvores Organizada por Culto -->
+    <main id="lista-musicas" class="space-y-6 pt-1">
       <div class="text-center py-16 text-slate-500 text-sm">
         <i data-lucide="loader-2" class="w-6 h-6 animate-spin mx-auto mb-2.5 text-indigo-400"></i>
-        Buscando músicas...
+        Buscando dados da planilha...
       </div>
     </main>
   </div>
@@ -66,7 +83,19 @@
 
     let todasMusicas = [];
     let diaAtual = "TODOS";
-    let intervaloPolling = null;
+    let mesAtual = "TODOS";
+
+    const NOMES_MESES = [
+      "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+      "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+    ];
+
+    // Ícone Oficial do Spotify em SVG vetorial
+    const SPOTIFY_SVG_ICON = `
+      <svg class="w-4 h-4 fill-[#1DB954]" viewBox="0 0 24 24">
+        <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.485 17.305c-.215.353-.674.464-1.027.249-2.812-1.718-6.353-2.107-10.522-1.155-.402.092-.803-.16-.895-.562-.092-.403.16-.803.562-.895 4.564-1.042 8.487-.6 11.633 1.336.353.216.464.674.249 1.027zm1.465-3.26c-.27.44-.848.578-1.288.307-3.22-1.979-8.127-2.55-11.935-1.393-.497.151-1.025-.134-1.176-.63-.151-.497.134-1.025.63-1.177 4.356-1.322 9.774-.684 13.462 1.585.44.27.578.848.307 1.288zm.126-3.41c-3.86-2.292-10.228-2.503-13.91-1.385-.593.18-1.223-.16-1.403-.753-.18-.593.16-1.223.753-1.403 4.238-1.287 11.272-1.042 15.698 1.587.534.316.71 1.009.394 1.543-.316.534-1.009.71-1.543.394z"/>
+      </svg>
+    `;
 
     function extrairYouTubeId(url) {
       if (!url) return null;
@@ -74,15 +103,35 @@
       return match ? match[1] : null;
     }
 
-    function formatarData(dataStr) {
-      if (!dataStr) return "";
-      const str = String(dataStr);
-      if (str.includes("T")) {
-        const apenasData = str.split("T")[0];
-        const [ano, mes, dia] = apenasData.split("-");
-        if (dia && mes && ano) return `${dia}/${mes}/${ano}`;
+    function parseDataInfo(dataStr) {
+      if (!dataStr) return { formatada: "", mesAno: "", chaveOrdenacao: 0 };
+      const str = String(dataStr).trim();
+      let d = 0, m = 0, a = 0;
+
+      if (str.includes("/")) {
+        const partes = str.split("/");
+        d = parseInt(partes[0], 10);
+        m = parseInt(partes[1], 10);
+        a = parseInt(partes[2], 10);
+      } else if (str.includes("-")) {
+        const limpa = str.includes("T") ? str.split("T")[0] : str;
+        const partes = limpa.split("-");
+        a = parseInt(partes[0], 10);
+        m = parseInt(partes[1], 10);
+        d = parseInt(partes[2], 10);
       }
-      return str;
+
+      if (!d || !m || !a) return { formatada: str, mesAno: "Outros", chaveOrdenacao: 0 };
+
+      const dFormatado = String(d).padStart(2, '0');
+      const mFormatado = String(m).padStart(2, '0');
+      const nomeMes = NOMES_MESES[m - 1] || `Mês ${m}`;
+
+      return {
+        formatada: `${dFormatado}/${mFormatado}/${a}`,
+        mesAno: `${nomeMes}/${a}`,
+        chaveOrdenacao: (a * 10000) + (m * 100) + d
+      };
     }
 
     function obterCampo(obj, termos) {
@@ -98,18 +147,49 @@
       return "";
     }
 
-    // Leitura inicial imediata
+    function atualizarSeletorMeses() {
+      const seletor = document.getElementById("seletor-mes");
+      const mesesSet = new Set();
+
+      todasMusicas.forEach(m => {
+        const infoData = parseDataInfo(obterCampo(m, ["data", "date"]));
+        if (infoData.mesAno) mesesSet.add(infoData.mesAno);
+      });
+
+      const meses = Array.from(mesesSet);
+      if (meses.length === 0) {
+        seletor.innerHTML = `<option value="TODOS">Todos os Meses</option>`;
+        return;
+      }
+
+      let options = `<option value="TODOS">Todos os Meses</option>`;
+      meses.forEach(m => {
+        options += `<option value="${m}" ${m === mesAtual ? "selected" : ""}>${m}</option>`;
+      });
+
+      seletor.innerHTML = options;
+      if (mesAtual === "TODOS" && meses.length > 0) {
+        mesAtual = meses[0];
+        seletor.value = mesAtual;
+      }
+    }
+
+    function mudarMes(novoMes) {
+      mesAtual = novoMes;
+      renderizarCards();
+    }
+
     function carregarDadosIniciais() {
       const dadosLocais = localStorage.getItem(CACHE_KEY);
       if (dadosLocais) {
         try {
           todasMusicas = JSON.parse(dadosLocais);
+          atualizarSeletorMeses();
           renderizarCards();
         } catch (e) {
           console.error("Erro ao ler cache local:", e);
         }
       }
-      // Sincroniza em segundo plano
       carregarRepertorio(false);
     }
 
@@ -117,20 +197,7 @@
       const iconRefresh = document.getElementById("icon-refresh");
       if (iconRefresh) iconRefresh.classList.add("animate-spin");
 
-      const container = document.getElementById("lista-musicas");
-      
-      if (forcado && todasMusicas.length === 0) {
-        container.innerHTML = `
-          <div class="text-center py-16 text-slate-500 text-sm">
-            <i data-lucide="loader-2" class="w-6 h-6 animate-spin mx-auto mb-2.5 text-indigo-400"></i>
-            A atualizar repertório...
-          </div>
-        `;
-        lucide.createIcons();
-      }
-
       try {
-        // O timestamp (?t=...) garante que o navegador e o Google Sheets não servem dados em cache
         const res = await fetch(`${API_URL}?t=${Date.now()}`);
         const data = await res.json();
         
@@ -138,15 +205,15 @@
           const stringNova = JSON.stringify(data);
           const stringAntiga = localStorage.getItem(CACHE_KEY);
 
-          // Atualiza o ecrã se existirem diferenças face aos dados anteriores
           if (stringNova !== stringAntiga || todasMusicas.length === 0) {
             todasMusicas = data;
             localStorage.setItem(CACHE_KEY, stringNova);
+            atualizarSeletorMeses();
             renderizarCards();
           }
         }
       } catch (err) {
-        console.error("Erro ao sincronizar com a planilha:", err);
+        console.error("Erro na requisição:", err);
       } finally {
         if (iconRefresh) iconRefresh.classList.remove("animate-spin");
         lucide.createIcons();
@@ -169,123 +236,169 @@
     function renderizarCards() {
       const container = document.getElementById("lista-musicas");
 
-      const filtradas = diaAtual === "TODOS"
-        ? todasMusicas
-        : todasMusicas.filter(m => {
-            const dia = obterCampo(m, ["dia", "diasemana", "dia_semana"]);
-            return dia.toString().toLowerCase().includes(diaAtual.toLowerCase());
-          });
+      const filtradas = todasMusicas.filter(m => {
+        const infoData = parseDataInfo(obterCampo(m, ["data", "date"]));
+        const dia = obterCampo(m, ["dia", "diasemana", "dia_semana"]).toString().toLowerCase();
+
+        const bateMes = (mesAtual === "TODOS" || infoData.mesAno === mesAtual);
+        const bateDia = (diaAtual === "TODOS" || dia.includes(diaAtual.toLowerCase()));
+
+        return bateMes && bateDia;
+      });
 
       if (filtradas.length === 0) {
         container.innerHTML = `
           <div class="text-center py-16 px-4 bg-slate-900/50 border border-dashed border-slate-800 rounded-2xl">
             <i data-lucide="calendar-x" class="w-8 h-8 text-slate-600 mx-auto mb-2"></i>
             <p class="text-slate-400 text-sm font-medium">Nenhum louvor encontrado</p>
-            <p class="text-slate-600 text-xs mt-0.5">Não há músicas registadas para ${diaAtual.toLowerCase()}.</p>
+            <p class="text-slate-600 text-xs mt-0.5">Sem cultos para o período selecionado.</p>
           </div>
         `;
         lucide.createIcons();
         return;
       }
 
-      container.innerHTML = filtradas.map((m) => {
-        const titulo = obterCampo(m, ["titulo", "título", "titulo_final", "title"]) || "Louvor sem título";
-        const tom = obterCampo(m, ["tom", "tonalidade"]) || "N/D";
-        const dia = obterCampo(m, ["dia", "diasemana", "dia_semana"]);
+      const gruposPorData = {};
+      filtradas.forEach(m => {
         const dataBruta = obterCampo(m, ["data", "date"]);
-        const data = dataBruta ? ` • ${formatarData(dataBruta)}` : "";
-        const ordem = obterCampo(m, ["ordem", "order"]) ? `#${obterCampo(m, ["ordem", "order"])}` : "";
+        const info = parseDataInfo(dataBruta);
+        const diaSemana = obterCampo(m, ["dia", "diasemana", "dia_semana"]) || "Culto";
+        const chaveGrupo = `${info.formatada} - ${diaSemana}`;
 
-        const linkYT = obterCampo(m, ["linkyoutube", "link_youtube", "youtube", "youtube_url_final"]);
-        const linkCifra = obterCampo(m, ["linkcifra", "link_cifra", "cifra"]);
-        const linkLetra = obterCampo(m, ["linkletra", "link_letra", "letra"]);
+        if (!gruposPorData[chaveGrupo]) {
+          gruposPorData[chaveGrupo] = {
+            dataTexto: info.formatada,
+            diaSemana: diaSemana,
+            ordemData: info.chaveOrdenacao,
+            itens: []
+          };
+        }
+        gruposPorData[chaveGrupo].itens.push(m);
+      });
 
-        const ytId = extrairYouTubeId(linkYT) || m.youtube_id;
-        const thumb = ytId
-          ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`
-          : "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&q=80";
+      const gruposOrdenados = Object.values(gruposPorData).sort((a, b) => a.ordemData - b.ordemData);
+
+      container.innerHTML = gruposOrdenados.map(grupo => {
+        grupo.itens.sort((a, b) => {
+          const ordA = parseInt(obterCampo(a, ["ordem", "order"]) || 99, 10);
+          const ordB = parseInt(obterCampo(b, ["ordem", "order"]) || 99, 10);
+          return ordA - ordB;
+        });
+
+        const cardsHtml = grupo.itens.map(m => {
+          const titulo = obterCampo(m, ["titulo", "título", "titulo_final", "title"]) || "Louvor sem título";
+          const tom = obterCampo(m, ["tom", "tonalidade"]) || "N/D";
+          const ordem = obterCampo(m, ["ordem", "order"]) ? `#${obterCampo(m, ["ordem", "order"])}` : "";
+
+          const linkYT = obterCampo(m, ["linkyoutube", "link_youtube", "youtube", "youtube_url_final"]);
+          const linkCifra = obterCampo(m, ["linkcifra", "link_cifra", "cifra"]);
+          const linkLetra = obterCampo(m, ["linkletra", "link_letra", "letra"]);
+          const linkSpotify = obterCampo(m, ["linkspotify", "link_spotify", "spotify"]);
+
+          const ytId = extrairYouTubeId(linkYT) || m.youtube_id;
+          const thumb = ytId
+            ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`
+            : "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&q=80";
+
+          return `
+            <div class="bg-slate-900 border border-slate-800/90 rounded-2xl overflow-hidden shadow-lg hover:border-slate-700 transition">
+              <div class="relative aspect-video w-full bg-slate-950">
+                <img src="${thumb}" alt="${titulo}" class="w-full h-full object-cover opacity-90" loading="lazy" />
+                
+                ${linkYT ? `
+                  <a href="${linkYT}" target="_blank" rel="noopener noreferrer" 
+                     class="absolute inset-0 flex items-center justify-center bg-black/35 hover:bg-black/20 transition group">
+                    <div class="w-12 h-12 rounded-full bg-red-600 text-white flex items-center justify-center shadow-lg transition transform group-hover:scale-110 active:scale-95">
+                      <i data-lucide="play" class="w-5 h-5 fill-current ml-0.5"></i>
+                    </div>
+                  </a>
+                ` : ''}
+
+                <div class="absolute top-2.5 left-2.5 flex items-center gap-1.5">
+                  ${ordem ? `
+                    <span class="bg-slate-900/80 backdrop-blur-md border border-slate-700/60 text-slate-200 px-2 py-0.5 rounded-md text-[11px] font-bold">
+                      ${ordem}
+                    </span>
+                  ` : ''}
+                </div>
+
+                <div class="absolute top-2.5 right-2.5 bg-black/75 backdrop-blur-md border border-emerald-500/30 text-emerald-400 px-2.5 py-0.5 rounded-lg text-xs font-bold shadow">
+                  Tom: ${tom}
+                </div>
+              </div>
+
+              <div class="p-4">
+                <h2 class="font-semibold text-slate-100 text-base leading-snug line-clamp-2">
+                  ${titulo}
+                </h2>
+
+                <div class="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-slate-800/80">
+                  ${linkCifra ? `
+                    <a href="${linkCifra}" target="_blank" rel="noopener noreferrer" 
+                       class="flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold active:scale-95 transition">
+                      <i data-lucide="music" class="w-3.5 h-3.5 text-amber-400"></i>
+                      <span>Cifra</span>
+                    </a>
+                  ` : `
+                    <div class="flex items-center justify-center py-2.5 px-2 rounded-xl bg-slate-950/40 border border-slate-800/50 text-slate-600 text-xs font-medium">
+                      Sem Cifra
+                    </div>
+                  `}
+
+                  ${linkLetra ? `
+                    <a href="${linkLetra}" target="_blank" rel="noopener noreferrer" 
+                       class="flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold active:scale-95 transition">
+                      <i data-lucide="file-text" class="w-3.5 h-3.5 text-sky-400"></i>
+                      <span>Letra</span>
+                    </a>
+                  ` : `
+                    <div class="flex items-center justify-center py-2.5 px-2 rounded-xl bg-slate-950/40 border border-slate-800/50 text-slate-600 text-xs font-medium">
+                      Sem Letra
+                    </div>
+                  `}
+
+                  ${linkSpotify ? `
+                    <a href="${linkSpotify}" target="_blank" rel="noopener noreferrer" 
+                       class="flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl bg-slate-800/90 border border-[#1DB954]/30 hover:bg-[#1DB954]/10 text-emerald-300 text-xs font-semibold active:scale-95 transition">
+                      ${SPOTIFY_SVG_ICON}
+                      <span class="text-white">Spotify</span>
+                    </a>
+                  ` : `
+                    <div class="flex items-center justify-center py-2.5 px-2 rounded-xl bg-slate-950/40 border border-slate-800/50 text-slate-600 text-xs font-medium">
+                      Sem Áudio
+                    </div>
+                  `}
+                </div>
+              </div>
+            </div>
+          `;
+        }).join("");
 
         return `
-          <div class="bg-slate-900 border border-slate-800/90 rounded-2xl overflow-hidden shadow-lg">
-            <div class="relative aspect-video w-full bg-slate-950">
-              <img src="${thumb}" alt="${titulo}" class="w-full h-full object-cover opacity-90" loading="lazy" />
-              
-              ${linkYT ? `
-                <a href="${linkYT}" target="_blank" rel="noopener noreferrer" 
-                   class="absolute inset-0 flex items-center justify-center bg-black/35 hover:bg-black/20 transition group">
-                  <div class="w-12 h-12 rounded-full bg-red-600 text-white flex items-center justify-center shadow-lg transition transform group-hover:scale-110 active:scale-95">
-                    <i data-lucide="play" class="w-5 h-5 fill-current ml-0.5"></i>
-                  </div>
-                </a>
-              ` : ''}
-
-              <div class="absolute top-2.5 left-2.5 flex items-center gap-1.5">
-                ${ordem ? `
-                  <span class="bg-slate-900/80 backdrop-blur-md border border-slate-700/60 text-slate-200 px-2 py-0.5 rounded-md text-[11px] font-bold">
-                    ${ordem}
-                  </span>
-                ` : ''}
+          <section class="space-y-3 pt-2">
+            <div class="flex items-center gap-3">
+              <div class="h-px bg-slate-800 flex-1"></div>
+              <div class="bg-indigo-950/70 border border-indigo-500/30 text-indigo-300 px-3.5 py-1 rounded-full text-xs font-bold tracking-wide uppercase shadow-sm">
+                ${grupo.diaSemana} • ${grupo.dataTexto}
               </div>
-
-              <div class="absolute top-2.5 right-2.5 bg-black/75 backdrop-blur-md border border-emerald-500/30 text-emerald-400 px-2.5 py-0.5 rounded-lg text-xs font-bold shadow">
-                Tom: ${tom}
-              </div>
+              <div class="h-px bg-slate-800 flex-1"></div>
             </div>
-
-            <div class="p-4">
-              <div class="text-[11px] font-semibold text-indigo-400 tracking-wider uppercase mb-1">
-                ${dia}${data}
-              </div>
-              <h2 class="font-semibold text-slate-100 text-base leading-snug line-clamp-2">
-                ${titulo}
-              </h2>
-
-              <div class="grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-slate-800/80">
-                ${linkCifra ? `
-                  <a href="${linkCifra}" target="_blank" rel="noopener noreferrer" 
-                     class="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold active:scale-95 transition">
-                    <i data-lucide="music" class="w-3.5 h-3.5 text-amber-400"></i>
-                    Ver Cifra
-                  </a>
-                ` : `
-                  <div class="flex items-center justify-center py-2.5 px-3 rounded-xl bg-slate-950/40 border border-slate-800/50 text-slate-600 text-xs font-medium">
-                    Sem Cifra
-                  </div>
-                `}
-
-                ${linkLetra ? `
-                  <a href="${linkLetra}" target="_blank" rel="noopener noreferrer" 
-                     class="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold active:scale-95 transition">
-                    <i data-lucide="file-text" class="w-3.5 h-3.5 text-sky-400"></i>
-                    Ver Letra
-                  </a>
-                ` : `
-                  <div class="flex items-center justify-center py-2.5 px-3 rounded-xl bg-slate-950/40 border border-slate-800/50 text-slate-600 text-xs font-medium">
-                    Sem Letra
-                  </div>
-                `}
-              </div>
+            <div class="space-y-4">
+              ${cardsHtml}
             </div>
-          </div>
+          </section>
         `;
       }).join("");
 
       lucide.createIcons();
     }
 
-    // Gatilho 1: Atualiza ao regressar ao separador da aplicação
     document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "visible") {
-        carregarRepertorio(false);
-      }
+      if (document.visibilityState === "visible") carregarRepertorio(false);
     });
 
-    // Gatilho 2: Consulta automática periódica (a cada 30 segundos)
-    intervaloPolling = setInterval(() => {
-      carregarRepertorio(false);
-    }, 30000);
+    setInterval(() => carregarRepertorio(false), 30000);
 
-    // Inicialização
     carregarDadosIniciais();
   </script>
 </body>
