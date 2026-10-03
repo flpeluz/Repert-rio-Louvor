@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Repertório Louvor</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    body {
+      background-color: #0b1120;
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body class="min-h-screen pb-14 selection:bg-indigo-500 selection:text-white">
+  <div class="max-w-md mx-auto px-4 pt-6">
+    <!-- Cabeçalho -->
+    <header class="flex items-center justify-between pb-4 border-b border-slate-800/80">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+          <i data-lucide="music-2" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold tracking-tight text-white leading-tight">Ministério de Louvor</h1>
+          <p class="text-xs text-slate-400 font-medium">Repertório do Mês</p>
+        </div>
+      </div>
+      <button onclick="carregarRepertorio()" title="Recarregar dados" class="w-9 h-9 rounded-xl bg-slate-800/80 border border-slate-700/60 hover:bg-slate-700 active:scale-95 transition flex items-center justify-center">
+        <i data-lucide="rotate-cw" id="icon-refresh" class="w-4 h-4 text-slate-300"></i>
+      </button>
+    </header>
+
+    <!-- Barra de Filtros -->
+    <div class="flex gap-2 overflow-x-auto py-4 no-scrollbar items-center" id="container-filtros">
+      <button onclick="filtrarDia('TODOS')" data-filtro="TODOS" class="filtro-btn px-4 py-1.5 rounded-full text-xs font-semibold bg-indigo-600 text-white shadow-sm whitespace-nowrap transition">
+        Todos
+      </button>
+      <button onclick="filtrarDia('Quinta')" data-filtro="Quinta" class="filtro-btn px-4 py-1.5 rounded-full text-xs font-semibold bg-slate-800 text-slate-400 border border-slate-700/50 whitespace-nowrap transition">
+        Quintas
+      </button>
+      <button onclick="filtrarDia('Sábado')" data-filtro="Sábado" class="filtro-btn px-4 py-1.5 rounded-full text-xs font-semibold bg-slate-800 text-slate-400 border border-slate-700/50 whitespace-nowrap transition">
+        Sábados
+      </button>
+      <button onclick="filtrarDia('Domingo')" data-filtro="Domingo" class="filtro-btn px-4 py-1.5 rounded-full text-xs font-semibold bg-slate-800 text-slate-400 border border-slate-700/50 whitespace-nowrap transition">
+        Domingos
+      </button>
+    </div>
+
+    <!-- Lista de Louvores -->
+    <main id="lista-musicas" class="space-y-4">
+      <div class="text-center py-16 text-slate-500 text-sm">
+        <i data-lucide="loader-2" class="w-6 h-6 animate-spin mx-auto mb-2.5 text-indigo-400"></i>
+        Buscando músicas...
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbzkZZmDWoNs9MzMZch5sYRgrIR9oGlgQ2j6vU2PzlnN-d1hAJG8dyfOPwuZygQri9yv/exec";
+    const CACHE_KEY = "repertorio_louvor_cache";
+
+    let todasMusicas = [];
+    let diaAtual = "TODOS";
+    let intervaloPolling = null;
+
+    function extrairYouTubeId(url) {
+      if (!url) return null;
+      const match = url.toString().match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+      return match ? match[1] : null;
+    }
+
+    function formatarData(dataStr) {
+      if (!dataStr) return "";
+      const str = String(dataStr);
+      if (str.includes("T")) {
+        const apenasData = str.split("T")[0];
+        const [ano, mes, dia] = apenasData.split("-");
+        if (dia && mes && ano) return `${dia}/${mes}/${ano}`;
+      }
+      return str;
+    }
+
+    function obterCampo(obj, termos) {
+      const normalizar = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
+      const termosNorm = termos.map(normalizar);
+
+      for (const chave in obj) {
+        const chaveNorm = normalizar(chave);
+        if (termosNorm.includes(chaveNorm) && obj[chave] !== "" && obj[chave] !== null && obj[chave] !== undefined) {
+          return obj[chave];
+        }
+      }
+      return "";
+    }
+
+    // Leitura inicial imediata
+    function carregarDadosIniciais() {
+      const dadosLocais = localStorage.getItem(CACHE_KEY);
+      if (dadosLocais) {
+        try {
+          todasMusicas = JSON.parse(dadosLocais);
+          renderizarCards();
+        } catch (e) {
+          console.error("Erro ao ler cache local:", e);
+        }
+      }
+      // Sincroniza em segundo plano
+      carregarRepertorio(false);
+    }
+
+    async function carregarRepertorio(forcado = false) {
+      const iconRefresh = document.getElementById("icon-refresh");
+      if (iconRefresh) iconRefresh.classList.add("animate-spin");
+
+      const container = document.getElementById("lista-musicas");
+      
+      if (forcado && todasMusicas.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-16 text-slate-500 text-sm">
+            <i data-lucide="loader-2" class="w-6 h-6 animate-spin mx-auto mb-2.5 text-indigo-400"></i>
+            A atualizar repertório...
+          </div>
+        `;
+        lucide.createIcons();
+      }
+
+      try {
+        // O timestamp (?t=...) garante que o navegador e o Google Sheets não servem dados em cache
+        const res = await fetch(`${API_URL}?t=${Date.now()}`);
+        const data = await res.json();
+        
+        if (Array.isArray(data) && data.length > 0) {
+          const stringNova = JSON.stringify(data);
+          const stringAntiga = localStorage.getItem(CACHE_KEY);
+
+          // Atualiza o ecrã se existirem diferenças face aos dados anteriores
+          if (stringNova !== stringAntiga || todasMusicas.length === 0) {
+            todasMusicas = data;
+            localStorage.setItem(CACHE_KEY, stringNova);
+            renderizarCards();
+          }
+        }
+      } catch (err) {
+        console.error("Erro ao sincronizar com a planilha:", err);
+      } finally {
+        if (iconRefresh) iconRefresh.classList.remove("animate-spin");
+        lucide.createIcons();
+      }
+    }
+
+    function filtrarDia(dia) {
+      diaAtual = dia;
+      document.querySelectorAll(".filtro-btn").forEach((btn) => {
+        const tipo = btn.getAttribute("data-filtro");
+        if (tipo === dia) {
+          btn.className = "filtro-btn px-4 py-1.5 rounded-full text-xs font-semibold bg-indigo-600 text-white shadow-sm whitespace-nowrap transition";
+        } else {
+          btn.className = "filtro-btn px-4 py-1.5 rounded-full text-xs font-semibold bg-slate-800 text-slate-400 border border-slate-700/50 whitespace-nowrap transition";
+        }
+      });
+      renderizarCards();
+    }
+
+    function renderizarCards() {
+      const container = document.getElementById("lista-musicas");
+
+      const filtradas = diaAtual === "TODOS"
+        ? todasMusicas
+        : todasMusicas.filter(m => {
+            const dia = obterCampo(m, ["dia", "diasemana", "dia_semana"]);
+            return dia.toString().toLowerCase().includes(diaAtual.toLowerCase());
+          });
+
+      if (filtradas.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-16 px-4 bg-slate-900/50 border border-dashed border-slate-800 rounded-2xl">
+            <i data-lucide="calendar-x" class="w-8 h-8 text-slate-600 mx-auto mb-2"></i>
+            <p class="text-slate-400 text-sm font-medium">Nenhum louvor encontrado</p>
+            <p class="text-slate-600 text-xs mt-0.5">Não há músicas registadas para ${diaAtual.toLowerCase()}.</p>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      container.innerHTML = filtradas.map((m) => {
+        const titulo = obterCampo(m, ["titulo", "título", "titulo_final", "title"]) || "Louvor sem título";
+        const tom = obterCampo(m, ["tom", "tonalidade"]) || "N/D";
+        const dia = obterCampo(m, ["dia", "diasemana", "dia_semana"]);
+        const dataBruta = obterCampo(m, ["data", "date"]);
+        const data = dataBruta ? ` • ${formatarData(dataBruta)}` : "";
+        const ordem = obterCampo(m, ["ordem", "order"]) ? `#${obterCampo(m, ["ordem", "order"])}` : "";
+
+        const linkYT = obterCampo(m, ["linkyoutube", "link_youtube", "youtube", "youtube_url_final"]);
+        const linkCifra = obterCampo(m, ["linkcifra", "link_cifra", "cifra"]);
+        const linkLetra = obterCampo(m, ["linkletra", "link_letra", "letra"]);
+
+        const ytId = extrairYouTubeId(linkYT) || m.youtube_id;
+        const thumb = ytId
+          ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`
+          : "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&q=80";
+
+        return `
+          <div class="bg-slate-900 border border-slate-800/90 rounded-2xl overflow-hidden shadow-lg">
+            <div class="relative aspect-video w-full bg-slate-950">
+              <img src="${thumb}" alt="${titulo}" class="w-full h-full object-cover opacity-90" loading="lazy" />
+              
+              ${linkYT ? `
+                <a href="${linkYT}" target="_blank" rel="noopener noreferrer" 
+                   class="absolute inset-0 flex items-center justify-center bg-black/35 hover:bg-black/20 transition group">
+                  <div class="w-12 h-12 rounded-full bg-red-600 text-white flex items-center justify-center shadow-lg transition transform group-hover:scale-110 active:scale-95">
+                    <i data-lucide="play" class="w-5 h-5 fill-current ml-0.5"></i>
+                  </div>
+                </a>
+              ` : ''}
+
+              <div class="absolute top-2.5 left-2.5 flex items-center gap-1.5">
+                ${ordem ? `
+                  <span class="bg-slate-900/80 backdrop-blur-md border border-slate-700/60 text-slate-200 px-2 py-0.5 rounded-md text-[11px] font-bold">
+                    ${ordem}
+                  </span>
+                ` : ''}
+              </div>
+
+              <div class="absolute top-2.5 right-2.5 bg-black/75 backdrop-blur-md border border-emerald-500/30 text-emerald-400 px-2.5 py-0.5 rounded-lg text-xs font-bold shadow">
+                Tom: ${tom}
+              </div>
+            </div>
+
+            <div class="p-4">
+              <div class="text-[11px] font-semibold text-indigo-400 tracking-wider uppercase mb-1">
+                ${dia}${data}
+              </div>
+              <h2 class="font-semibold text-slate-100 text-base leading-snug line-clamp-2">
+                ${titulo}
+              </h2>
+
+              <div class="grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-slate-800/80">
+                ${linkCifra ? `
+                  <a href="${linkCifra}" target="_blank" rel="noopener noreferrer" 
+                     class="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold active:scale-95 transition">
+                    <i data-lucide="music" class="w-3.5 h-3.5 text-amber-400"></i>
+                    Ver Cifra
+                  </a>
+                ` : `
+                  <div class="flex items-center justify-center py-2.5 px-3 rounded-xl bg-slate-950/40 border border-slate-800/50 text-slate-600 text-xs font-medium">
+                    Sem Cifra
+                  </div>
+                `}
+
+                ${linkLetra ? `
+                  <a href="${linkLetra}" target="_blank" rel="noopener noreferrer" 
+                     class="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold active:scale-95 transition">
+                    <i data-lucide="file-text" class="w-3.5 h-3.5 text-sky-400"></i>
+                    Ver Letra
+                  </a>
+                ` : `
+                  <div class="flex items-center justify-center py-2.5 px-3 rounded-xl bg-slate-950/40 border border-slate-800/50 text-slate-600 text-xs font-medium">
+                    Sem Letra
+                  </div>
+                `}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      lucide.createIcons();
+    }
+
+    // Gatilho 1: Atualiza ao regressar ao separador da aplicação
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") {
+        carregarRepertorio(false);
+      }
+    });
+
+    // Gatilho 2: Consulta automática periódica (a cada 30 segundos)
+    intervaloPolling = setInterval(() => {
+      carregarRepertorio(false);
+    }, 30000);
+
+    // Inicialização
+    carregarDadosIniciais();
+  </script>
+</body>
+</html>
