@@ -123,13 +123,27 @@
 
       <form id="form-louvor" onsubmit="salvarNovoLouvor(event)" class="space-y-4 mt-4 text-xs">
         <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block text-slate-300 font-semibold mb-1">Data do Culto *</label>
-            <input type="date" id="input-data" required onchange="calcularDiaSemana(this.value)" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-slate-200 outline-none focus:border-indigo-500" />
-          </div>
-          <div>
-            <label class="block text-slate-300 font-semibold mb-1">Dia da Semana</label>
-            <input type="text" id="input-dia" readonly placeholder="Auto" class="w-full bg-slate-950/60 border border-slate-800 rounded-xl px-3 py-2.5 text-indigo-300 font-semibold outline-none" />
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="min-w-0">
+              <label class="block text-slate-300 font-semibold mb-1">Data do Culto *</label>
+              <input 
+                type="date" 
+                id="input-data" 
+                required 
+                onchange="calcularDiaSemana(this.value)" 
+                class="w-full min-w-0 appearance-none bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-slate-200 outline-none focus:border-indigo-500" 
+              />
+            </div>
+            <div class="min-w-0">
+              <label class="block text-slate-300 font-semibold mb-1">Dia da Semana</label>
+              <input 
+                type="text" 
+                id="input-dia" 
+                readonly 
+                placeholder="Auto" 
+                class="w-full min-w-0 bg-slate-950/60 border border-slate-800 rounded-xl px-3 py-2.5 text-indigo-300 font-semibold outline-none" 
+              />
+            </div>
           </div>
         </div>
 
