@@ -3,14 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Repertório Louvor</title>
+  <title>Louvor e Adoração - VCD</title>
 
-  <!-- PWA & Ícone Oficial para Android e Chrome -->
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" type="image/png" href="Logo VCD.png" />
   <meta name="theme-color" content="#0b1120" />
-
-  <!-- PWA & Ícone Oficial para iPhone e iPad (iOS) -->
   <link rel="apple-touch-icon" href="Logo VCD.png" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -29,10 +26,10 @@
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
   </style>
 </head>
-<body class="min-h-screen pb-14 selection:bg-indigo-500 selection:text-white">
+<body class="min-h-screen pb-28 selection:bg-indigo-500 selection:text-white relative">
   <div class="max-w-md mx-auto px-4 pt-6">
     
-    <!-- Cabeçalho com Logo da Igreja -->
+    <!-- Cabeçalho -->
     <header class="flex items-center justify-between pb-4 border-b border-slate-800/80">
       <div class="flex items-center gap-3">
         <div class="w-11 h-11 rounded-2xl bg-slate-900 border border-slate-700/60 flex items-center justify-center overflow-hidden shrink-0 shadow-inner">
@@ -45,16 +42,21 @@
         </div>
         <div>
           <h1 class="text-base font-bold tracking-tight text-white leading-tight">Louvor e Adoração - VCD</h1>
-          <p class="text-xs text-slate-400 font-medium">Repertório de Louvores</p>
+          <p class="text-xs text-slate-400 font-medium">Escala e Repertório</p>
         </div>
       </div>
       
-      <button onclick="carregarRepertorio(true)" title="Recarregar repertório" class="w-9 h-9 rounded-xl bg-slate-800/80 border border-slate-700/60 hover:bg-slate-700 active:scale-95 transition flex items-center justify-center">
-        <i data-lucide="rotate-cw" id="icon-refresh" class="w-4 h-4 text-slate-300"></i>
-      </button>
+      <div class="flex items-center gap-2">
+        <button onclick="alternarModoAdmin()" id="btn-lock" title="Acesso da Liderança" class="w-9 h-9 rounded-xl bg-slate-800/80 border border-slate-700/60 hover:bg-slate-700 active:scale-95 transition flex items-center justify-center">
+          <i data-lucide="lock" id="icon-lock" class="w-4 h-4 text-slate-400"></i>
+        </button>
+        <button onclick="carregarRepertorio(true)" title="Recarregar dados" class="w-9 h-9 rounded-xl bg-slate-800/80 border border-slate-700/60 hover:bg-slate-700 active:scale-95 transition flex items-center justify-center">
+          <i data-lucide="rotate-cw" id="icon-refresh" class="w-4 h-4 text-slate-300"></i>
+        </button>
+      </div>
     </header>
 
-    <!-- Filtro do Mês de Referência -->
+    <!-- Filtro de Mês -->
     <div class="mt-4 flex items-center justify-between bg-slate-900/90 border border-slate-800 p-2 rounded-xl">
       <span class="text-xs font-semibold text-slate-400 pl-2 flex items-center gap-1.5">
         <i data-lucide="calendar" class="w-3.5 h-3.5 text-indigo-400"></i>
@@ -64,7 +66,7 @@
       </select>
     </div>
 
-    <!-- Barra de Filtros com destaque para o Próximo Culto -->
+    <!-- Barra de Filtros -->
     <div class="flex gap-2 overflow-x-auto py-3 no-scrollbar items-center" id="container-filtros">
       <button onclick="filtrarDia('PROXIMO')" data-filtro="PROXIMO" id="btn-filtro-proximo" class="filtro-btn px-4 py-1.5 rounded-full text-xs font-semibold bg-indigo-600 text-white shadow-sm whitespace-nowrap transition flex items-center gap-1.5">
         <i data-lucide="sparkles" class="w-3.5 h-3.5 text-indigo-200"></i>
@@ -88,19 +90,257 @@
     <main id="lista-musicas" class="space-y-6 pt-1">
       <div class="text-center py-16 text-slate-500 text-sm">
         <i data-lucide="loader-2" class="w-6 h-6 animate-spin mx-auto mb-2.5 text-indigo-400"></i>
-        Buscando dados da planilha...
+        Buscando dados...
       </div>
     </main>
+  </div>
+
+  <!-- Barra Flutuante de Ações (Admin) -->
+  <div id="painel-botoes-admin" class="hidden fixed bottom-6 inset-x-0 mx-auto max-w-xs z-40 flex items-center justify-center gap-3">
+    <button onclick="abrirModalMembros()" class="flex-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-bold py-3 px-3 rounded-2xl shadow-xl flex items-center justify-center gap-2 text-xs active:scale-95 transition">
+      <i data-lucide="users" class="w-4 h-4 text-sky-400"></i>
+      Membros
+    </button>
+    <button onclick="abrirModalNovoLouvor()" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-3 rounded-2xl shadow-xl flex items-center justify-center gap-2 text-xs border border-indigo-400/30 active:scale-95 transition">
+      <i data-lucide="plus-circle" class="w-4 h-4"></i>
+      Novo Louvor
+    </button>
+  </div>
+
+  <!-- Modal 1: Novo Louvor (Focado apenas na música) -->
+  <div id="modal-louvor" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-sm p-4 overflow-y-auto flex items-center justify-center">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-md p-5 shadow-2xl relative my-8">
+      
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <h3 class="text-base font-bold text-white flex items-center gap-2">
+          <i data-lucide="music-4" class="w-4 h-4 text-indigo-400"></i>
+          Novo Louvor
+        </h3>
+        <button onclick="fecharModalLouvor()" class="text-slate-400 hover:text-white p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="form-louvor" onsubmit="salvarNovoLouvor(event)" class="space-y-4 mt-4 text-xs">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Data do Culto *</label>
+            <input type="date" id="input-data" required onchange="calcularDiaSemana(this.value)" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-slate-200 outline-none focus:border-indigo-500" />
+          </div>
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Dia da Semana</label>
+            <input type="text" id="input-dia" readonly placeholder="Auto" class="w-full bg-slate-950/60 border border-slate-800 rounded-xl px-3 py-2.5 text-indigo-300 font-semibold outline-none" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Ordem no Culto *</label>
+            <input type="number" id="input-ordem" min="1" max="20" placeholder="Ex: 1, 2, 3" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-slate-200 outline-none focus:border-indigo-500" />
+          </div>
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Tom *</label>
+            <select id="input-tom" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-slate-200 outline-none focus:border-indigo-500">
+              <option value="">Selecione o Tom</option>
+              <optgroup label="Tons Maiores">
+                <option value="C">C (Dó Maior)</option>
+                <option value="C#">C# / Db</option>
+                <option value="D">D (Ré Maior)</option>
+                <option value="Eb">Eb (Mi bemol)</option>
+                <option value="E">E (Mi Maior)</option>
+                <option value="F">F (Fá Maior)</option>
+                <option value="F#">F# / Gb</option>
+                <option value="G">G (Sol Maior)</option>
+                <option value="Ab">Ab (Lá bemol)</option>
+                <option value="A">A (Lá Maior)</option>
+                <option value="Bb">Bb (Si bemol)</option>
+                <option value="B">B (Si Maior)</option>
+              </optgroup>
+              <optgroup label="Tons Menores">
+                <option value="Cm">Cm (Dó Menor)</option>
+                <option value="C#m">C#m</option>
+                <option value="Dm">Dm (Ré Menor)</option>
+                <option value="Ebm">Ebm</option>
+                <option value="Em">Em (Mi Menor)</option>
+                <option value="Fm">Fm (Fá Menor)</option>
+                <option value="F#m">F#m</option>
+                <option value="Gm">Gm (Sol Menor)</option>
+                <option value="Abm">Abm</option>
+                <option value="Am">Am (Lá Menor)</option>
+                <option value="Bbm">Bbm</option>
+                <option value="Bm">Bm (Si Menor)</option>
+              </optgroup>
+            </select>
+          </div>
+        </div>
+
+        <div class="space-y-2 pt-1 border-t border-slate-800">
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Link do YouTube * (Título automático)</label>
+            <input type="url" id="input-yt" required placeholder="https://www.youtube.com/watch?v=..." class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 outline-none focus:border-indigo-500" />
+          </div>
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Link da Cifra (Cifra Club)</label>
+            <input type="url" id="input-cifra" placeholder="https://www.cifraclub.com.br/..." class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 outline-none focus:border-indigo-500" />
+          </div>
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Link da Letra</label>
+            <input type="url" id="input-letra" placeholder="https://www.letras.mus.br/..." class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 outline-none focus:border-indigo-500" />
+          </div>
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Link do Spotify</label>
+            <input type="url" id="input-spotify" placeholder="https://open.spotify.com/track/..." class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 outline-none focus:border-indigo-500" />
+          </div>
+        </div>
+
+        <button type="submit" id="btn-submit-louvor" class="w-full mt-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl shadow-lg transition flex items-center justify-center gap-2">
+          <i data-lucide="save" class="w-4 h-4"></i>
+          Salvar no Repertório
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 2: Editar Escala do Culto (Excluir/Editar Louvores e Definir Músicos) -->
+  <div id="modal-editar-culto" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-sm p-4 overflow-y-auto flex items-center justify-center">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-md p-5 shadow-2xl relative my-8">
+      
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div>
+          <h3 class="text-base font-bold text-white flex items-center gap-2">
+            <i data-lucide="sliders" class="w-4 h-4 text-amber-400"></i>
+            Gestão do Culto
+          </h3>
+          <p id="label-culto-edicao" class="text-xs text-indigo-400 font-medium"></p>
+        </div>
+        <button onclick="fecharModalEditarCulto()" class="text-slate-400 hover:text-white p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Louvores Escalados com Editar e Excluir -->
+      <div class="mt-4">
+        <span class="text-xs font-semibold text-slate-300 block mb-2">Louvores do Dia:</span>
+        <div id="lista-louvores-culto-edicao" class="space-y-2 max-h-48 overflow-y-auto pr-1"></div>
+      </div>
+
+      <!-- Escala de Músicos daquele Culto -->
+      <div class="mt-4 pt-3 border-t border-slate-800">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-semibold text-slate-300">Escala de Músicos:</span>
+          <span class="text-[10px] text-slate-400">Quem toca neste culto</span>
+        </div>
+        <div id="lista-membros-culto-edicao" class="space-y-2 max-h-44 overflow-y-auto pr-1"></div>
+        <button onclick="salvarAlteracaoIntegrantesCulto()" id="btn-salvar-integrantes-culto" class="w-full mt-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-1.5 shadow-lg">
+          <i data-lucide="check" class="w-4 h-4"></i>
+          Salvar Escala de Músicos
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 3: Editar Louvor Específico (Tom, Ordem e Links) -->
+  <div id="modal-editar-louvor-item" class="hidden fixed inset-0 z-50 bg-black/90 backdrop-blur-sm p-4 overflow-y-auto flex items-center justify-center">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-md p-5 shadow-2xl relative my-8">
+      
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <h3 class="text-base font-bold text-white flex items-center gap-2">
+          <i data-lucide="edit-2" class="w-4 h-4 text-emerald-400"></i>
+          Editar Louvor
+        </h3>
+        <button onclick="fecharModalEditarLouvorItem()" class="text-slate-400 hover:text-white p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="form-editar-louvor" onsubmit="salvarAlteracaoLouvor(event)" class="space-y-3 mt-4 text-xs">
+        <input type="hidden" id="edit-link-yt-antigo" />
+        <input type="hidden" id="edit-data-alvo" />
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Ordem</label>
+            <input type="number" id="edit-ordem" min="1" max="20" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 outline-none focus:border-indigo-500" />
+          </div>
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Tom</label>
+            <select id="edit-tom" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 outline-none focus:border-indigo-500">
+              <optgroup label="Tons Maiores">
+                <option value="C">C</option><option value="C#">C# / Db</option><option value="D">D</option><option value="Eb">Eb</option><option value="E">E</option><option value="F">F</option><option value="F#">F# / Gb</option><option value="G">G</option><option value="Ab">Ab</option><option value="A">A</option><option value="Bb">Bb</option><option value="B">B</option>
+              </optgroup>
+              <optgroup label="Tons Menores">
+                <option value="Cm">Cm</option><option value="C#m">C#m</option><option value="Dm">Dm</option><option value="Ebm">Ebm</option><option value="Em">Em</option><option value="Fm">Fm</option><option value="F#m">F#m</option><option value="Gm">Gm</option><option value="Abm">Abm</option><option value="Am">Am</option><option value="Bbm">Bbm</option><option value="Bm">Bm</option>
+              </optgroup>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">Link do YouTube</label>
+          <input type="url" id="edit-yt" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 outline-none focus:border-indigo-500" />
+        </div>
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">Link da Cifra</label>
+          <input type="url" id="edit-cifra" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 outline-none focus:border-indigo-500" />
+        </div>
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">Link da Letra</label>
+          <input type="url" id="edit-letra" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 outline-none focus:border-indigo-500" />
+        </div>
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">Link do Spotify</label>
+          <input type="url" id="edit-spotify" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 outline-none focus:border-indigo-500" />
+        </div>
+
+        <button type="submit" id="btn-submit-edit-louvor" class="w-full mt-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl shadow-lg transition flex items-center justify-center gap-2">
+          <i data-lucide="check" class="w-4 h-4"></i>
+          Atualizar Louvor
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 4: Gerenciar Banco de Membros -->
+  <div id="modal-membros" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-sm p-4 overflow-y-auto flex items-center justify-center">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-sm p-5 shadow-2xl relative my-8">
+      
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <h3 class="text-base font-bold text-white flex items-center gap-2">
+          <i data-lucide="users" class="w-4 h-4 text-sky-400"></i>
+          Membros do Louvor
+        </h3>
+        <button onclick="fecharModalMembros()" class="text-slate-400 hover:text-white p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form onsubmit="adicionarNovoMembro(event)" class="mt-4 flex gap-2">
+        <input type="text" id="input-novo-membro" placeholder="Nome do integrante..." required class="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 outline-none focus:border-indigo-500" />
+        <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-3 py-2 rounded-xl transition flex items-center gap-1">
+          <i data-lucide="user-plus" class="w-3.5 h-3.5"></i>
+          Add
+        </button>
+      </form>
+
+      <div class="mt-4 pt-3 border-t border-slate-800">
+        <span class="text-xs font-semibold text-slate-400 block mb-2">Equipe Cadastrada:</span>
+        <div id="lista-membros-cadastrados" class="space-y-1.5 max-h-56 overflow-y-auto pr-1"></div>
+      </div>
+    </div>
   </div>
 
   <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbzkZZmDWoNs9MzMZch5sYRgrIR9oGlgQ2j6vU2PzlnN-d1hAJG8dyfOPwuZygQri9yv/exec";
     const CACHE_KEY = "repertorio_louvor_cache";
+    const PIN_ACESSO = "1234";
 
     let todasMusicas = [];
-    let diaAtual = "PROXIMO"; // Padrão inteligente de inicialização
+    let todosMembros = [];
+    let diaAtual = "PROXIMO";
     let mesAtual = "TODOS";
-    let dataCultoAlvo = null; // Armazena a data identificada do próximo culto
+    let dataCultoAlvo = null;
+    let dataCultoEmEdicao = null;
+    let isAdmin = localStorage.getItem("louvor_admin_ativo") === "true";
 
     const NOMES_MESES = [
       "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -158,14 +398,394 @@
       return "";
     }
 
-    // Calcula se é hoje ou qual é o próximo dia de culto
+    function alternarModoAdmin() {
+      if (isAdmin) {
+        if (confirm("Deseja sair do modo de liderança?")) {
+          isAdmin = false;
+          localStorage.removeItem("louvor_admin_ativo");
+          atualizarInterfaceAdmin();
+          renderizarCards();
+        }
+      } else {
+        const pin = prompt("Digite o PIN da liderança:");
+        if (pin === PIN_ACESSO) {
+          isAdmin = true;
+          localStorage.setItem("louvor_admin_ativo", "true");
+          atualizarInterfaceAdmin();
+          renderizarCards();
+        } else if (pin !== null) {
+          alert("PIN incorreto.");
+        }
+      }
+    }
+
+    function atualizarInterfaceAdmin() {
+      const btnLock = document.getElementById("icon-lock");
+      const painelAdmin = document.getElementById("painel-botoes-admin");
+
+      if (isAdmin) {
+        btnLock.setAttribute("data-lucide", "unlock");
+        btnLock.className = "w-4 h-4 text-emerald-400";
+        painelAdmin.classList.remove("hidden");
+        painelAdmin.classList.add("flex");
+      } else {
+        btnLock.setAttribute("data-lucide", "lock");
+        btnLock.className = "w-4 h-4 text-slate-400";
+        painelAdmin.classList.add("hidden");
+        painelAdmin.classList.remove("flex");
+      }
+      lucide.createIcons();
+    }
+
+    // Modal Novo Louvor
+    function abrirModalNovoLouvor() {
+      document.getElementById("modal-louvor").classList.remove("hidden");
+    }
+
+    function fecharModalLouvor() {
+      document.getElementById("modal-louvor").classList.add("hidden");
+      document.getElementById("form-louvor").reset();
+    }
+
+    function calcularDiaSemana(dataStr) {
+      if (!dataStr) return;
+      const [ano, mes, dia] = dataStr.split("-");
+      const dataObj = new Date(ano, mes - 1, dia);
+      const diasSemana = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+      document.getElementById("input-dia").value = diasSemana[dataObj.getDay()];
+    }
+
+    async function salvarNovoLouvor(e) {
+      e.preventDefault();
+      const btn = document.getElementById("btn-submit-louvor");
+      btn.disabled = true;
+      btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Buscando título e gravando...`;
+      lucide.createIcons();
+
+      const dataCrua = document.getElementById("input-data").value;
+      const [ano, mes, dia] = dataCrua.split("-");
+      const dataFormatada = `${dia}/${mes}/${ano}`;
+
+      const payload = {
+        acao: "salvar_louvor",
+        data: dataFormatada,
+        dia: document.getElementById("input-dia").value,
+        ordem: document.getElementById("input-ordem").value,
+        tom: document.getElementById("input-tom").value,
+        link_youtube: document.getElementById("input-yt").value.trim(),
+        link_cifra: document.getElementById("input-cifra").value.trim(),
+        link_letra: document.getElementById("input-letra").value.trim(),
+        link_spotify: document.getElementById("input-spotify").value.trim()
+      };
+
+      try {
+        await fetch(API_URL, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        fecharModalLouvor();
+        setTimeout(() => carregarRepertorio(true), 1500);
+      } catch (err) {
+        alert("Erro ao gravar. Verifique a conexão.");
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i data-lucide="save" class="w-4 h-4"></i> Salvar no Repertório`;
+        lucide.createIcons();
+      }
+    }
+
+    // Modal Gestão do Culto (Excluir/Editar Louvores e Escala de Músicos)
+    function abrirModalEditarCulto(dataTexto, diaSemana) {
+      dataCultoEmEdicao = dataTexto;
+      document.getElementById("label-culto-edicao").innerText = `${diaSemana} • ${dataTexto}`;
+      document.getElementById("modal-editar-culto").classList.remove("hidden");
+
+      const louvoresDesteCulto = todasMusicas.filter(m => {
+        const info = parseDataInfo(obterCampo(m, ["data", "date"]));
+        return info.formatada === dataTexto;
+      });
+
+      // Lista Louvores com Editar e Excluir
+      const containerLouvores = document.getElementById("lista-louvores-culto-edicao");
+      if (louvoresDesteCulto.length === 0) {
+        containerLouvores.innerHTML = `<p class="text-xs text-slate-500">Sem louvores.</p>`;
+      } else {
+        containerLouvores.innerHTML = louvoresDesteCulto.map(m => {
+          const tit = obterCampo(m, ["titulo", "título", "titulo_final"]) || "Louvor";
+          const tom = obterCampo(m, ["tom"]) || "N/D";
+          const ord = obterCampo(m, ["ordem", "order"]) ? `#${obterCampo(m, ["ordem", "order"])}` : "";
+          const linkYT = obterCampo(m, ["linkyoutube", "link_youtube", "youtube"]);
+          const linkCifra = obterCampo(m, ["linkcifra", "link_cifra", "cifra"]);
+          const linkLetra = obterCampo(m, ["linkletra", "link_letra", "letra"]);
+          const linkSpotify = obterCampo(m, ["linkspotify", "link_spotify", "spotify"]);
+
+          const objStr = encodeURIComponent(JSON.stringify({
+            data: dataTexto,
+            ordem: obterCampo(m, ["ordem", "order"]),
+            tom: tom,
+            link_youtube: linkYT,
+            link_cifra: linkCifra,
+            link_letra: linkLetra,
+            link_spotify: linkSpotify
+          }));
+
+          return `
+            <div class="flex items-center justify-between bg-slate-800/80 px-3 py-2 rounded-xl text-xs gap-2">
+              <div class="flex-1 min-w-0">
+                <span class="text-slate-100 font-semibold block leading-tight truncate">${ord} ${tit}</span>
+                <span class="text-[11px] text-emerald-400 font-medium">Tom: ${tom}</span>
+              </div>
+              <div class="flex items-center gap-1.5 shrink-0">
+                <button onclick="abrirModalEditarLouvorItem('${objStr}')" class="text-indigo-300 hover:text-white p-1.5 bg-indigo-500/10 rounded-lg">
+                  <i data-lucide="edit-2" class="w-3.5 h-3.5"></i>
+                </button>
+                <button onclick="excluirLouvor('${dataTexto}', '${linkYT}')" class="text-rose-400 hover:text-rose-300 p-1.5 bg-rose-500/10 rounded-lg">
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+            </div>
+          `;
+        }).join("");
+      }
+
+      // Lista Músicos para a Escala do Culto
+      const containerMembros = document.getElementById("lista-membros-culto-edicao");
+      let textoIntegrantesAtual = "";
+      for (const m of louvoresDesteCulto) {
+        const integ = obterCampo(m, ["integrantes", "escala", "equipe"]);
+        if (integ) { textoIntegrantesAtual = integ; break; }
+      }
+
+      containerMembros.innerHTML = todosMembros.map((nome, idx) => {
+        const estaMarcado = textoIntegrantesAtual.includes(nome);
+        let funcaoSalva = "Voz";
+        if (estaMarcado) {
+          const match = textoIntegrantesAtual.match(new RegExp(`${nome}\\s*\\(([^)]+)\\)`));
+          if (match) funcaoSalva = match[1];
+        }
+
+        return `
+          <div class="flex items-center gap-2 bg-slate-800/60 p-2 rounded-xl">
+            <input type="checkbox" id="check-edit-mem-${idx}" value="${nome}" ${estaMarcado ? "checked" : ""} class="check-edit-membro w-4 h-4 rounded accent-indigo-600" />
+            <label for="check-edit-mem-${idx}" class="text-xs text-slate-200 font-semibold flex-1 cursor-pointer">${nome}</label>
+            <select id="funcao-edit-mem-${idx}" class="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-[11px] text-slate-200 outline-none">
+              <option value="Voz" ${funcaoSalva === "Voz" ? "selected" : ""}>Voz</option>
+              <option value="Ministração" ${funcaoSalva === "Ministração" ? "selected" : ""}>Ministração</option>
+              <option value="Teclado" ${funcaoSalva === "Teclado" ? "selected" : ""}>Teclado</option>
+              <option value="Violão" ${funcaoSalva === "Violão" ? "selected" : ""}>Violão</option>
+              <option value="Guitarra" ${funcaoSalva === "Guitarra" ? "selected" : ""}>Guitarra</option>
+              <option value="Baixo" ${funcaoSalva === "Baixo" ? "selected" : ""}>Baixo</option>
+              <option value="Bateria" ${funcaoSalva === "Bateria" ? "selected" : ""}>Bateria</option>
+              <option value="Projeção" ${funcaoSalva === "Projeção" ? "selected" : ""}>Projeção</option>
+            </select>
+          </div>
+        `;
+      }).join("");
+
+      lucide.createIcons();
+    }
+
+    function fecharModalEditarCulto() {
+      document.getElementById("modal-editar-culto").classList.add("hidden");
+    }
+
+    // Modal Editar Louvor Item (Tom, Ordem, Links)
+    function abrirModalEditarLouvorItem(objJsonEncoded) {
+      const dados = JSON.parse(decodeURIComponent(objJsonEncoded));
+      document.getElementById("edit-data-alvo").value = dados.data;
+      document.getElementById("edit-link-yt-antigo").value = dados.link_youtube;
+      document.getElementById("edit-ordem").value = dados.ordem || "1";
+      document.getElementById("edit-tom").value = dados.tom || "C";
+      document.getElementById("edit-yt").value = dados.link_youtube || "";
+      document.getElementById("edit-cifra").value = dados.link_cifra || "";
+      document.getElementById("edit-letra").value = dados.link_letra || "";
+      document.getElementById("edit-spotify").value = dados.link_spotify || "";
+
+      document.getElementById("modal-editar-louvor-item").classList.remove("hidden");
+    }
+
+    function fecharModalEditarLouvorItem() {
+      document.getElementById("modal-editar-louvor-item").classList.add("hidden");
+    }
+
+    async function salvarAlteracaoLouvor(e) {
+      e.preventDefault();
+      const btn = document.getElementById("btn-submit-edit-louvor");
+      btn.disabled = true;
+      btn.innerText = "Atualizando...";
+
+      const payload = {
+        acao: "editar_louvor",
+        data: document.getElementById("edit-data-alvo").value,
+        link_youtube_antigo: document.getElementById("edit-link-yt-antigo").value,
+        ordem: document.getElementById("edit-ordem").value,
+        tom: document.getElementById("edit-tom").value,
+        link_youtube: document.getElementById("edit-yt").value.trim(),
+        link_cifra: document.getElementById("edit-cifra").value.trim(),
+        link_letra: document.getElementById("edit-letra").value.trim(),
+        link_spotify: document.getElementById("edit-spotify").value.trim()
+      };
+
+      try {
+        await fetch(API_URL, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        fecharModalEditarLouvorItem();
+        fecharModalEditarCulto();
+        setTimeout(() => carregarRepertorio(true), 1500);
+      } catch (err) {
+        alert("Erro ao atualizar louvor.");
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i data-lucide="check" class="w-4 h-4"></i> Atualizar Louvor`;
+        lucide.createIcons();
+      }
+    }
+
+    async function excluirLouvor(dataTexto, linkYT) {
+      if (!confirm("Remover este louvor da escala?")) return;
+
+      todasMusicas = todasMusicas.filter(m => {
+        const info = parseDataInfo(obterCampo(m, ["data", "date"]));
+        const link = obterCampo(m, ["linkyoutube", "link_youtube", "youtube"]);
+        return !(info.formatada === dataTexto && link === linkYT);
+      });
+      fecharModalEditarCulto();
+      renderizarCards();
+
+      await fetch(API_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ acao: "excluir_louvor", data: dataTexto, link_youtube: linkYT })
+      });
+    }
+
+    async function salvarAlteracaoIntegrantesCulto() {
+      const btn = document.getElementById("btn-salvar-integrantes-culto");
+      btn.disabled = true;
+      btn.innerText = "Gravando escala de músicos...";
+
+      const lista = [];
+      document.querySelectorAll(".check-edit-membro").forEach((chk, idx) => {
+        if (chk.checked) {
+          const nome = chk.value;
+          const funcao = document.getElementById(`funcao-edit-mem-${idx}`).value;
+          lista.push(`${nome} (${funcao})`);
+        }
+      });
+
+      const integrantesTexto = lista.join(", ");
+
+      // Atualiza todas as músicas daquele culto na memória
+      todasMusicas.forEach(m => {
+        const info = parseDataInfo(obterCampo(m, ["data", "date"]));
+        if (info.formatada === dataCultoEmEdicao) {
+          m.integrantes = integrantesTexto;
+        }
+      });
+
+      // Salva no cache local para persistir de imediato
+      localStorage.setItem(CACHE_KEY, JSON.stringify({ repertorio: todasMusicas, membros: todosMembros }));
+      renderizarCards();
+      fecharModalEditarCulto();
+
+      await fetch(API_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          acao: "atualizar_integrantes_culto",
+          data: dataCultoEmEdicao,
+          integrantes: integrantesTexto
+        })
+      });
+
+      btn.disabled = false;
+      btn.innerHTML = `<i data-lucide="check" class="w-4 h-4"></i> Salvar Escala de Músicos`;
+      lucide.createIcons();
+    }
+
+    // Modal Membros
+    function abrirModalMembros() {
+      document.getElementById("modal-membros").classList.remove("hidden");
+      renderizarListaMembros();
+    }
+
+    function fecharModalMembros() {
+      document.getElementById("modal-membros").classList.add("hidden");
+    }
+
+    function renderizarListaMembros() {
+      const container = document.getElementById("lista-membros-cadastrados");
+      if (todosMembros.length === 0) {
+        container.innerHTML = `<p class="text-xs text-slate-500 py-2">Nenhum membro cadastrado.</p>`;
+        return;
+      }
+
+      container.innerHTML = todosMembros.map(nome => `
+        <div class="flex items-center justify-between bg-slate-800/80 px-3 py-2 rounded-xl text-xs">
+          <span class="text-slate-200 font-medium">${nome}</span>
+          <button onclick="excluirMembro('${nome}')" class="text-rose-400 hover:text-rose-300 p-1">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      `).join("");
+      lucide.createIcons();
+    }
+
+    async function adicionarNovoMembro(e) {
+      e.preventDefault();
+      const input = document.getElementById("input-novo-membro");
+      const nome = input.value.trim();
+      if (!nome) return;
+
+      if (todosMembros.some(m => m.toLowerCase() === nome.toLowerCase())) {
+        alert("Integrante já cadastrado.");
+        return;
+      }
+
+      todosMembros.push(nome);
+      todosMembros.sort();
+      renderizarListaMembros();
+      input.value = "";
+
+      fetch(API_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ acao: "adicionar_membro", nome: nome })
+      });
+    }
+
+    async function excluirMembro(nome) {
+      if (!confirm(`Remover ${nome} da equipe de louvor?`)) return;
+
+      todosMembros = todosMembros.filter(m => m !== nome);
+      renderizarListaMembros();
+
+      fetch(API_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ acao: "excluir_membro", nome: nome })
+      });
+    }
+
+    // Leitura, Filtros e Renderização
     function determinarCultoDestaque() {
       if (todasMusicas.length === 0) return null;
 
       const hoje = new Date();
       hoje.setHours(0, 0, 0, 0);
 
-      // Pega todas as datas únicas cadastradas
       const datasMap = new Map();
       todasMusicas.forEach(m => {
         const info = parseDataInfo(obterCampo(m, ["data", "date"]));
@@ -177,27 +797,14 @@
       const datasOrdenadas = Array.from(datasMap.values()).sort((a, b) => a.chaveOrdenacao - b.chaveOrdenacao);
       if (datasOrdenadas.length === 0) return null;
 
-      // 1. Procura se há culto exatamente hoje ou nos próximos dias (futuro)
       const proximoOuHoje = datasOrdenadas.find(item => item.dateObj >= hoje);
-
-      let selecionado = null;
-      if (proximoOuHoje) {
-        selecionado = proximoOuHoje;
-        const ehHoje = proximoOuHoje.dateObj.getTime() === hoje.getTime();
-        document.getElementById("label-proximo").innerText = ehHoje ? "Culto de Hoje" : "Próximo Culto";
-      } else {
-        // Se já passaram todos os cultos cadastrados do mês, seleciona o último
-        selecionado = datasOrdenadas[datasOrdenadas.length - 1];
-        document.getElementById("label-proximo").innerText = "Último Culto";
-      }
-
+      let selecionado = proximoOuHoje ? proximoOuHoje : datasOrdenadas[datasOrdenadas.length - 1];
+      const ehHoje = selecionado && selecionado.dateObj.getTime() === hoje.getTime();
+      
+      document.getElementById("label-proximo").innerText = ehHoje ? "Culto de Hoje" : "Próximo Culto";
       dataCultoAlvo = selecionado ? selecionado.formatada : null;
 
-      // Sincroniza o seletor de mês com o mês desse culto alvo
-      if (selecionado && selecionado.mesAno) {
-        mesAtual = selecionado.mesAno;
-      }
-
+      if (selecionado && selecionado.mesAno) mesAtual = selecionado.mesAno;
       return selecionado;
     }
 
@@ -227,7 +834,6 @@
 
     function mudarMes(novoMes) {
       mesAtual = novoMes;
-      // Ao mudar de mês manualmente, muda o filtro para "TODOS" para ver os cultos do mês
       if (diaAtual === "PROXIMO") {
         diaAtual = "TODOS";
         atualizarBotoesFiltro();
@@ -236,16 +842,23 @@
     }
 
     function carregarDadosIniciais() {
+      atualizarInterfaceAdmin();
       const dadosLocais = localStorage.getItem(CACHE_KEY);
       if (dadosLocais) {
         try {
-          todasMusicas = JSON.parse(dadosLocais);
+          const parsed = JSON.parse(dadosLocais);
+          if (Array.isArray(parsed)) {
+            todasMusicas = parsed;
+          } else {
+            todasMusicas = parsed.repertorio || [];
+            todosMembros = parsed.membros || [];
+          }
           determinarCultoDestaque();
           atualizarSeletorMeses();
           atualizarBotoesFiltro();
           renderizarCards();
         } catch (e) {
-          console.error("Erro ao ler cache local:", e);
+          console.error("Erro ao ler cache:", e);
         }
       }
       carregarRepertorio(false);
@@ -259,21 +872,27 @@
         const res = await fetch(`${API_URL}?t=${Date.now()}`);
         const data = await res.json();
         
-        if (Array.isArray(data) && data.length > 0) {
-          const stringNova = JSON.stringify(data);
-          const stringAntiga = localStorage.getItem(CACHE_KEY);
+        let rep = [];
+        let mem = [];
 
-          if (stringNova !== stringAntiga || todasMusicas.length === 0) {
-            todasMusicas = data;
-            localStorage.setItem(CACHE_KEY, stringNova);
-            determinarCultoDestaque();
-            atualizarSeletorMeses();
-            atualizarBotoesFiltro();
-            renderizarCards();
-          }
+        if (Array.isArray(data)) {
+          rep = data;
+        } else if (data && data.repertorio) {
+          rep = data.repertorio;
+          mem = data.membros || [];
+        }
+
+        if (rep.length > 0 || mem.length > 0) {
+          todasMusicas = rep;
+          todosMembros = mem;
+          localStorage.setItem(CACHE_KEY, JSON.stringify({ repertorio: rep, membros: mem }));
+          determinarCultoDestaque();
+          atualizarSeletorMeses();
+          atualizarBotoesFiltro();
+          renderizarCards();
         }
       } catch (err) {
-        console.error("Erro na requisição:", err);
+        console.error("Erro na sincronização:", err);
       } finally {
         if (iconRefresh) iconRefresh.classList.remove("animate-spin");
         lucide.createIcons();
@@ -300,20 +919,14 @@
     function renderizarCards() {
       const container = document.getElementById("lista-musicas");
 
-      // 1. Filtragem inteligente
       const filtradas = todasMusicas.filter(m => {
         const infoData = parseDataInfo(obterCampo(m, ["data", "date"]));
         const dia = obterCampo(m, ["dia", "diasemana", "dia_semana"]).toString().toLowerCase();
 
-        // Filtro "PROXIMO" (Culto de hoje ou o próximo culto da semana)
-        if (diaAtual === "PROXIMO") {
-          return infoData.formatada === dataCultoAlvo;
-        }
+        if (diaAtual === "PROXIMO") return infoData.formatada === dataCultoAlvo;
 
-        // Filtros normais por Mês e por Dia
         const bateMes = (mesAtual === "TODOS" || infoData.mesAno === mesAtual);
         const bateDia = (diaAtual === "TODOS" || dia.includes(diaAtual.toLowerCase()));
-
         return bateMes && bateDia;
       });
 
@@ -329,7 +942,6 @@
         return;
       }
 
-      // 2. Agrupamento por Culto
       const gruposPorData = {};
       filtradas.forEach(m => {
         const dataBruta = obterCampo(m, ["data", "date"]);
@@ -342,15 +954,19 @@
             dataTexto: info.formatada,
             diaSemana: diaSemana,
             ordemData: info.chaveOrdenacao,
+            integrantes: "",
             itens: []
           };
+        }
+        const integ = obterCampo(m, ["integrantes", "escala", "equipe"]);
+        if (integ && !gruposPorData[chaveGrupo].integrantes) {
+          gruposPorData[chaveGrupo].integrantes = integ;
         }
         gruposPorData[chaveGrupo].itens.push(m);
       });
 
       const gruposOrdenados = Object.values(gruposPorData).sort((a, b) => a.ordemData - b.ordemData);
 
-      // 3. Renderização
       container.innerHTML = gruposOrdenados.map(grupo => {
         grupo.itens.sort((a, b) => {
           const ordA = parseInt(obterCampo(a, ["ordem", "order"]) || 99, 10);
@@ -447,15 +1063,37 @@
           `;
         }).join("");
 
+        const botaoEditarCulto = isAdmin ? `
+          <button onclick="abrirModalEditarCulto('${grupo.dataTexto}', '${grupo.diaSemana}')" class="text-[11px] font-bold text-amber-400 hover:text-amber-300 bg-amber-500/10 border border-amber-500/30 px-2.5 py-1 rounded-lg flex items-center gap-1 transition active:scale-95">
+            <i data-lucide="edit-3" class="w-3 h-3"></i>
+            Editar Escala
+          </button>
+        ` : '';
+
+        const escalaHtml = grupo.integrantes ? `
+          <div class="bg-indigo-950/40 border border-indigo-500/30 rounded-2xl p-3.5 flex items-start gap-3 shadow-md">
+            <div class="w-8 h-8 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center shrink-0 text-indigo-400">
+              <i data-lucide="users" class="w-4 h-4"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <span class="text-[11px] font-bold text-indigo-300 uppercase tracking-wider block mb-1">Escala de Músicos</span>
+              <p class="text-xs text-slate-200 leading-relaxed font-medium">${grupo.integrantes}</p>
+            </div>
+          </div>
+        ` : '';
+
         return `
           <section class="space-y-3 pt-2">
-            <div class="flex items-center gap-3">
-              <div class="h-px bg-slate-800 flex-1"></div>
-              <div class="bg-indigo-950/70 border border-indigo-500/30 text-indigo-300 px-3.5 py-1 rounded-full text-xs font-bold tracking-wide uppercase shadow-sm">
-                ${grupo.diaSemana} • ${grupo.dataTexto}
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-2 flex-1">
+                <div class="bg-indigo-950/70 border border-indigo-500/30 text-indigo-300 px-3.5 py-1 rounded-full text-xs font-bold tracking-wide uppercase shadow-sm">
+                  ${grupo.diaSemana} • ${grupo.dataTexto}
+                </div>
+                <div class="h-px bg-slate-800 flex-1"></div>
               </div>
-              <div class="h-px bg-slate-800 flex-1"></div>
+              ${botaoEditarCulto}
             </div>
+            ${escalaHtml}
             <div class="space-y-4">
               ${cardsHtml}
             </div>
