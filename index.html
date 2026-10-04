@@ -4,6 +4,18 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Repertório Louvor</title>
+
+  <!-- PWA & Ícone Oficial para Android e Chrome -->
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/png" href="Logo VCD.png" />
+  <meta name="theme-color" content="#0b1120" />
+
+  <!-- PWA & Ícone Oficial para iPhone e iPad (iOS) -->
+  <link rel="apple-touch-icon" href="Logo VCD.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Louvor VCD" />
+
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <style>
@@ -32,7 +44,7 @@
           />
         </div>
         <div>
-          <h1 class="text-base font-bold tracking-tight text-white leading-tight">Ministério de Louvor - VCD</h1>
+          <h1 class="text-base font-bold tracking-tight text-white leading-tight">Louvor e Adoração - VCD</h1>
           <p class="text-xs text-slate-400 font-medium">Repertório de Louvores</p>
         </div>
       </div>
@@ -52,9 +64,13 @@
       </select>
     </div>
 
-    <!-- Barra de Filtros de Culto -->
+    <!-- Barra de Filtros com destaque para o Próximo Culto -->
     <div class="flex gap-2 overflow-x-auto py-3 no-scrollbar items-center" id="container-filtros">
-      <button onclick="filtrarDia('TODOS')" data-filtro="TODOS" class="filtro-btn px-4 py-1.5 rounded-full text-xs font-semibold bg-indigo-600 text-white shadow-sm whitespace-nowrap transition">
+      <button onclick="filtrarDia('PROXIMO')" data-filtro="PROXIMO" id="btn-filtro-proximo" class="filtro-btn px-4 py-1.5 rounded-full text-xs font-semibold bg-indigo-600 text-white shadow-sm whitespace-nowrap transition flex items-center gap-1.5">
+        <i data-lucide="sparkles" class="w-3.5 h-3.5 text-indigo-200"></i>
+        <span id="label-proximo">Próximo Culto</span>
+      </button>
+      <button onclick="filtrarDia('TODOS')" data-filtro="TODOS" class="filtro-btn px-4 py-1.5 rounded-full text-xs font-semibold bg-slate-800 text-slate-400 border border-slate-700/50 whitespace-nowrap transition">
         Todos
       </button>
       <button onclick="filtrarDia('Quinta')" data-filtro="Quinta" class="filtro-btn px-4 py-1.5 rounded-full text-xs font-semibold bg-slate-800 text-slate-400 border border-slate-700/50 whitespace-nowrap transition">
@@ -68,7 +84,7 @@
       </button>
     </div>
 
-    <!-- Lista de Louvores Organizada por Culto -->
+    <!-- Lista de Louvores -->
     <main id="lista-musicas" class="space-y-6 pt-1">
       <div class="text-center py-16 text-slate-500 text-sm">
         <i data-lucide="loader-2" class="w-6 h-6 animate-spin mx-auto mb-2.5 text-indigo-400"></i>
@@ -82,20 +98,14 @@
     const CACHE_KEY = "repertorio_louvor_cache";
 
     let todasMusicas = [];
-    let diaAtual = "TODOS";
+    let diaAtual = "PROXIMO"; // Padrão inteligente de inicialização
     let mesAtual = "TODOS";
+    let dataCultoAlvo = null; // Armazena a data identificada do próximo culto
 
     const NOMES_MESES = [
       "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
       "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
     ];
-
-    // Ícone Oficial do Spotify em SVG vetorial
-    const SPOTIFY_SVG_ICON = `
-      <svg class="w-4 h-4 fill-[#1DB954]" viewBox="0 0 24 24">
-        <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.485 17.305c-.215.353-.674.464-1.027.249-2.812-1.718-6.353-2.107-10.522-1.155-.402.092-.803-.16-.895-.562-.092-.403.16-.803.562-.895 4.564-1.042 8.487-.6 11.633 1.336.353.216.464.674.249 1.027zm1.465-3.26c-.27.44-.848.578-1.288.307-3.22-1.979-8.127-2.55-11.935-1.393-.497.151-1.025-.134-1.176-.63-.151-.497.134-1.025.63-1.177 4.356-1.322 9.774-.684 13.462 1.585.44.27.578.848.307 1.288zm.126-3.41c-3.86-2.292-10.228-2.503-13.91-1.385-.593.18-1.223-.16-1.403-.753-.18-.593.16-1.223.753-1.403 4.238-1.287 11.272-1.042 15.698 1.587.534.316.71 1.009.394 1.543-.316.534-1.009.71-1.543.394z"/>
-      </svg>
-    `;
 
     function extrairYouTubeId(url) {
       if (!url) return null;
@@ -104,7 +114,7 @@
     }
 
     function parseDataInfo(dataStr) {
-      if (!dataStr) return { formatada: "", mesAno: "", chaveOrdenacao: 0 };
+      if (!dataStr) return { formatada: "", mesAno: "", chaveOrdenacao: 0, dateObj: null };
       const str = String(dataStr).trim();
       let d = 0, m = 0, a = 0;
 
@@ -121,7 +131,7 @@
         d = parseInt(partes[2], 10);
       }
 
-      if (!d || !m || !a) return { formatada: str, mesAno: "Outros", chaveOrdenacao: 0 };
+      if (!d || !m || !a) return { formatada: str, mesAno: "Outros", chaveOrdenacao: 0, dateObj: null };
 
       const dFormatado = String(d).padStart(2, '0');
       const mFormatado = String(m).padStart(2, '0');
@@ -130,7 +140,8 @@
       return {
         formatada: `${dFormatado}/${mFormatado}/${a}`,
         mesAno: `${nomeMes}/${a}`,
-        chaveOrdenacao: (a * 10000) + (m * 100) + d
+        chaveOrdenacao: (a * 10000) + (m * 100) + d,
+        dateObj: new Date(a, m - 1, d)
       };
     }
 
@@ -147,13 +158,56 @@
       return "";
     }
 
+    // Calcula se é hoje ou qual é o próximo dia de culto
+    function determinarCultoDestaque() {
+      if (todasMusicas.length === 0) return null;
+
+      const hoje = new Date();
+      hoje.setHours(0, 0, 0, 0);
+
+      // Pega todas as datas únicas cadastradas
+      const datasMap = new Map();
+      todasMusicas.forEach(m => {
+        const info = parseDataInfo(obterCampo(m, ["data", "date"]));
+        if (info.dateObj && !datasMap.has(info.chaveOrdenacao)) {
+          datasMap.set(info.chaveOrdenacao, info);
+        }
+      });
+
+      const datasOrdenadas = Array.from(datasMap.values()).sort((a, b) => a.chaveOrdenacao - b.chaveOrdenacao);
+      if (datasOrdenadas.length === 0) return null;
+
+      // 1. Procura se há culto exatamente hoje ou nos próximos dias (futuro)
+      const proximoOuHoje = datasOrdenadas.find(item => item.dateObj >= hoje);
+
+      let selecionado = null;
+      if (proximoOuHoje) {
+        selecionado = proximoOuHoje;
+        const ehHoje = proximoOuHoje.dateObj.getTime() === hoje.getTime();
+        document.getElementById("label-proximo").innerText = ehHoje ? "Culto de Hoje" : "Próximo Culto";
+      } else {
+        // Se já passaram todos os cultos cadastrados do mês, seleciona o último
+        selecionado = datasOrdenadas[datasOrdenadas.length - 1];
+        document.getElementById("label-proximo").innerText = "Último Culto";
+      }
+
+      dataCultoAlvo = selecionado ? selecionado.formatada : null;
+
+      // Sincroniza o seletor de mês com o mês desse culto alvo
+      if (selecionado && selecionado.mesAno) {
+        mesAtual = selecionado.mesAno;
+      }
+
+      return selecionado;
+    }
+
     function atualizarSeletorMeses() {
       const seletor = document.getElementById("seletor-mes");
       const mesesSet = new Set();
 
       todasMusicas.forEach(m => {
         const infoData = parseDataInfo(obterCampo(m, ["data", "date"]));
-        if (infoData.mesAno) mesesSet.add(infoData.mesAno);
+        if (infoData.mesAno && infoData.mesAno !== "Outros") mesesSet.add(infoData.mesAno);
       });
 
       const meses = Array.from(mesesSet);
@@ -168,14 +222,16 @@
       });
 
       seletor.innerHTML = options;
-      if (mesAtual === "TODOS" && meses.length > 0) {
-        mesAtual = meses[0];
-        seletor.value = mesAtual;
-      }
+      seletor.value = mesAtual;
     }
 
     function mudarMes(novoMes) {
       mesAtual = novoMes;
+      // Ao mudar de mês manualmente, muda o filtro para "TODOS" para ver os cultos do mês
+      if (diaAtual === "PROXIMO") {
+        diaAtual = "TODOS";
+        atualizarBotoesFiltro();
+      }
       renderizarCards();
     }
 
@@ -184,7 +240,9 @@
       if (dadosLocais) {
         try {
           todasMusicas = JSON.parse(dadosLocais);
+          determinarCultoDestaque();
           atualizarSeletorMeses();
+          atualizarBotoesFiltro();
           renderizarCards();
         } catch (e) {
           console.error("Erro ao ler cache local:", e);
@@ -208,7 +266,9 @@
           if (stringNova !== stringAntiga || todasMusicas.length === 0) {
             todasMusicas = data;
             localStorage.setItem(CACHE_KEY, stringNova);
+            determinarCultoDestaque();
             atualizarSeletorMeses();
+            atualizarBotoesFiltro();
             renderizarCards();
           }
         }
@@ -220,26 +280,37 @@
       }
     }
 
-    function filtrarDia(dia) {
-      diaAtual = dia;
+    function atualizarBotoesFiltro() {
       document.querySelectorAll(".filtro-btn").forEach((btn) => {
         const tipo = btn.getAttribute("data-filtro");
-        if (tipo === dia) {
-          btn.className = "filtro-btn px-4 py-1.5 rounded-full text-xs font-semibold bg-indigo-600 text-white shadow-sm whitespace-nowrap transition";
+        if (tipo === diaAtual) {
+          btn.className = "filtro-btn px-4 py-1.5 rounded-full text-xs font-semibold bg-indigo-600 text-white shadow-sm whitespace-nowrap transition flex items-center gap-1.5";
         } else {
-          btn.className = "filtro-btn px-4 py-1.5 rounded-full text-xs font-semibold bg-slate-800 text-slate-400 border border-slate-700/50 whitespace-nowrap transition";
+          btn.className = "filtro-btn px-4 py-1.5 rounded-full text-xs font-semibold bg-slate-800 text-slate-400 border border-slate-700/50 whitespace-nowrap transition flex items-center gap-1.5";
         }
       });
+    }
+
+    function filtrarDia(dia) {
+      diaAtual = dia;
+      atualizarBotoesFiltro();
       renderizarCards();
     }
 
     function renderizarCards() {
       const container = document.getElementById("lista-musicas");
 
+      // 1. Filtragem inteligente
       const filtradas = todasMusicas.filter(m => {
         const infoData = parseDataInfo(obterCampo(m, ["data", "date"]));
         const dia = obterCampo(m, ["dia", "diasemana", "dia_semana"]).toString().toLowerCase();
 
+        // Filtro "PROXIMO" (Culto de hoje ou o próximo culto da semana)
+        if (diaAtual === "PROXIMO") {
+          return infoData.formatada === dataCultoAlvo;
+        }
+
+        // Filtros normais por Mês e por Dia
         const bateMes = (mesAtual === "TODOS" || infoData.mesAno === mesAtual);
         const bateDia = (diaAtual === "TODOS" || dia.includes(diaAtual.toLowerCase()));
 
@@ -251,13 +322,14 @@
           <div class="text-center py-16 px-4 bg-slate-900/50 border border-dashed border-slate-800 rounded-2xl">
             <i data-lucide="calendar-x" class="w-8 h-8 text-slate-600 mx-auto mb-2"></i>
             <p class="text-slate-400 text-sm font-medium">Nenhum louvor encontrado</p>
-            <p class="text-slate-600 text-xs mt-0.5">Sem cultos para o período selecionado.</p>
+            <p class="text-slate-600 text-xs mt-0.5">Sem cultos para o filtro selecionado.</p>
           </div>
         `;
         lucide.createIcons();
         return;
       }
 
+      // 2. Agrupamento por Culto
       const gruposPorData = {};
       filtradas.forEach(m => {
         const dataBruta = obterCampo(m, ["data", "date"]);
@@ -278,6 +350,7 @@
 
       const gruposOrdenados = Object.values(gruposPorData).sort((a, b) => a.ordemData - b.ordemData);
 
+      // 3. Renderização
       container.innerHTML = gruposOrdenados.map(grupo => {
         grupo.itens.sort((a, b) => {
           const ordA = parseInt(obterCampo(a, ["ordem", "order"]) || 99, 10);
@@ -359,8 +432,8 @@
 
                   ${linkSpotify ? `
                     <a href="${linkSpotify}" target="_blank" rel="noopener noreferrer" 
-                       class="flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl bg-slate-800/90 border border-[#1DB954]/30 hover:bg-[#1DB954]/10 text-emerald-300 text-xs font-semibold active:scale-95 transition">
-                      ${SPOTIFY_SVG_ICON}
+                       class="flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl bg-slate-800/90 border border-emerald-500/30 hover:bg-emerald-950/30 text-emerald-300 text-xs font-semibold active:scale-95 transition">
+                      <img src="Spotify.png" alt="Spotify" class="w-4 h-4 object-contain" />
                       <span class="text-white">Spotify</span>
                     </a>
                   ` : `
