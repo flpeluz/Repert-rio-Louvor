@@ -599,20 +599,6 @@
         texto += `👥 *Escala de Hoje:*\n${listaFormatada}\n\n`;
       }
 
-      if (louvoresDesteCulto.length > 0) {
-        texto += `🎵 *Repertório:*\n`;
-        louvoresDesteCulto.forEach(m => {
-          const ord = obterCampo(m, ["ordem", "order"]) ? `#${obterCampo(m, ["ordem", "order"])} ` : "";
-          const tit = obterCampo(m, ["titulo", "título", "titulo_final"]) || "Louvor";
-          const tom = obterCampo(m, ["tom"]) || "N/D";
-          const obs = obterCampo(m, ["observacoes", "observacao", "obs", "notas"]);
-          const obsTxt = obs ? ` _(${obs})_` : "";
-
-          texto += `${ord}${tit} (Tom: ${tom})${obsTxt}\n`;
-        });
-        texto += `\n`;
-      }
-
       texto += `Cifras, letras e áudios disponíveis no app:\nhttps://repertoriolouvor.vercel.app`;
 
       const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(texto)}`;
@@ -655,7 +641,7 @@
       texto += `Segue sua escala de louvor para *${mesAtual}*:\n\n`;
 
       escalasDoMembro.forEach(item => {
-        texto += `📅 *${item.data} (${item.dia})* - ${item.funcao}\n`;
+        texto += `*${item.data} (${item.dia})* - ${item.funcao}\n`;
       });
 
       texto += `\nConsulte cifras e repertório completo no aplicativo:\nhttps://repertoriolouvor.vercel.app`;
