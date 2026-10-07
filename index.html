@@ -148,7 +148,7 @@
     </div>
   </div>
 
-  <!-- Modal 2: Criar / Atribuir Escala Mensal (Com Checks Pré-Marcados) -->
+  <!-- Modal 2: Criar / Atribuir Escala Mensal -->
   <div id="modal-escalar-musico" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-sm p-4 overflow-y-auto flex items-center justify-center">
     <div class="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-md p-5 shadow-2xl relative my-8">
       <div class="flex items-center justify-between pb-3 border-b border-slate-800">
@@ -168,26 +168,12 @@
           </select>
         </div>
 
-        <div>
-          <label class="block text-slate-300 font-semibold mb-1">Função / Instrumento *</label>
-          <select id="escala-funcao-membro" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 outline-none focus:border-indigo-500">
-            <option value="Bateria">Bateria</option>
-            <option value="Voz">Voz</option>
-            <option value="Ministração">Ministração</option>
-            <option value="Teclado">Teclado</option>
-            <option value="Violão">Violão</option>
-            <option value="Guitarra">Guitarra</option>
-            <option value="Baixo">Baixo</option>
-            <option value="Projeção">Projeção</option>
-          </select>
-        </div>
-
         <div class="pt-2 border-t border-slate-800">
           <div class="flex items-center justify-between mb-2">
-            <label class="block text-slate-300 font-semibold">Marque ou Desmarque os Cultos:</label>
+            <label class="block text-slate-300 font-semibold">Marque os Cultos e Funções:</label>
             <span class="text-[10px] text-indigo-400 font-medium" id="label-mes-alvo-escala"></span>
           </div>
-          <div id="container-dias-para-marcar" class="space-y-1.5 max-h-52 overflow-y-auto pr-1"></div>
+          <div id="container-dias-para-marcar" class="space-y-2 max-h-64 overflow-y-auto pr-1"></div>
         </div>
 
         <div class="flex items-center gap-2 mt-4">
@@ -230,7 +216,7 @@
     </div>
   </div>
 
-  <!-- Modal 4: Novo Louvor -->
+  <!-- Modal 4: Novo Louvor (com Observações) -->
   <div id="modal-louvor" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-sm p-4 overflow-y-auto flex items-center justify-center">
     <div class="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-md p-5 shadow-2xl relative my-8">
       <div class="flex items-center justify-between pb-3 border-b border-slate-800">
@@ -243,7 +229,7 @@
         </button>
       </div>
 
-      <form id="form-louvor" onsubmit="salvarNovoLouvor(event)" class="space-y-4 mt-4 text-xs">
+      <form id="form-louvor" onsubmit="salvarNovoLouvor(event)" class="space-y-3.5 mt-4 text-xs">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div class="min-w-0">
             <label class="block text-slate-300 font-semibold mb-1">Data do Culto *</label>
@@ -272,6 +258,11 @@
               </optgroup>
             </select>
           </div>
+        </div>
+
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">Observações (Opcional)</label>
+          <input type="text" id="input-obs" placeholder="Ex: Medley com 'Ele Reina', Capotraste 2ª casa..." class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 outline-none focus:border-indigo-500" />
         </div>
 
         <div class="space-y-2 pt-1 border-t border-slate-800">
@@ -324,7 +315,7 @@
     </div>
   </div>
 
-  <!-- Modal 6: Editar Louvor Item -->
+  <!-- Modal 6: Editar Louvor Item (com Observações) -->
   <div id="modal-editar-louvor-item" class="hidden fixed inset-0 z-50 bg-black/90 backdrop-blur-sm p-4 overflow-y-auto flex items-center justify-center">
     <div class="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-md p-5 shadow-2xl relative my-8">
       <div class="flex items-center justify-between pb-3 border-b border-slate-800">
@@ -357,6 +348,11 @@
               </optgroup>
             </select>
           </div>
+        </div>
+
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">Observações</label>
+          <input type="text" id="edit-obs" placeholder="Ex: Capo 2ª casa, Medley..." class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 outline-none focus:border-indigo-500" />
         </div>
 
         <div>
@@ -430,6 +426,11 @@
     const NOMES_MESES = [
       "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
       "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+    ];
+
+    const LISTA_FUNCOES_PURAS = [
+      "Violão", "Voz", "Ministração", "Teclado", 
+      "Bateria", "Baixo", "Guitarra", "Projeção"
     ];
 
     function extrairYouTubeId(url) {
@@ -598,16 +599,19 @@
         texto += `👥 *Escala de Hoje:*\n${listaFormatada}\n\n`;
       }
 
-      // if (louvoresDesteCulto.length > 0) {
-      //   texto += `🎵 *Repertório:*\n`;
-      //   louvoresDesteCulto.forEach(m => {
-      //     const ord = obterCampo(m, ["ordem", "order"]) ? `#${obterCampo(m, ["ordem", "order"])} ` : "";
-      //     const tit = obterCampo(m, ["titulo", "título", "titulo_final"]) || "Louvor";
-      //     const tom = obterCampo(m, ["tom"]) || "N/D";
-      //     texto += `${ord}${tit} (Tom: ${tom})\n`;
-      //   });
-      //   texto += `\n`;
-      // }
+      if (louvoresDesteCulto.length > 0) {
+        texto += `🎵 *Repertório:*\n`;
+        louvoresDesteCulto.forEach(m => {
+          const ord = obterCampo(m, ["ordem", "order"]) ? `#${obterCampo(m, ["ordem", "order"])} ` : "";
+          const tit = obterCampo(m, ["titulo", "título", "titulo_final"]) || "Louvor";
+          const tom = obterCampo(m, ["tom"]) || "N/D";
+          const obs = obterCampo(m, ["observacoes", "observacao", "obs", "notas"]);
+          const obsTxt = obs ? ` _(${obs})_` : "";
+
+          texto += `${ord}${tit} (Tom: ${tom})${obsTxt}\n`;
+        });
+        texto += `\n`;
+      }
 
       texto += `Cifras, letras e áudios disponíveis no app:\nhttps://repertoriolouvor.vercel.app`;
 
@@ -651,7 +655,7 @@
       texto += `Segue sua escala de louvor para *${mesAtual}*:\n\n`;
 
       escalasDoMembro.forEach(item => {
-        texto += `*${item.data} (${item.dia})* - ${item.funcao}\n`;
+        texto += `📅 *${item.data} (${item.dia})* - ${item.funcao}\n`;
       });
 
       texto += `\nConsulte cifras e repertório completo no aplicativo:\nhttps://repertoriolouvor.vercel.app`;
@@ -762,7 +766,7 @@
     }
 
     // ==========================================
-    // CRIAR ESCALA MENSAL (Com Checks e Pré-seleção)
+    // CRIAR ESCALA MENSAL (Com Funções por Culto)
     // ==========================================
     function abrirModalEscalarMusico() {
       const seletorNome = document.getElementById("escala-nome-membro");
@@ -812,12 +816,31 @@
         }
       }
 
-      container.innerHTML = diasCulto.map(item => `
-        <label class="flex items-center gap-2.5 bg-slate-800/60 hover:bg-slate-800 p-2 rounded-xl cursor-pointer">
-          <input type="checkbox" data-data="${item.data}" value='${JSON.stringify(item)}' class="check-dia-escala w-4 h-4 rounded accent-amber-500" />
-          <span class="text-xs text-slate-200 font-semibold flex-1">${item.dia} • ${item.data}</span>
-          <span class="text-[10px] text-emerald-400 font-medium status-funcao-dia"></span>
-        </label>
+      const optsPrincipal = LISTA_FUNCOES_PURAS.map(f => `<option value="${f}">${f}</option>`).join("");
+      const optsSecundaria = `<option value="">(Nenhuma)</option>` + LISTA_FUNCOES_PURAS.map(f => `<option value="${f}">${f}</option>`).join("");
+
+      container.innerHTML = diasCulto.map((item, idx) => `
+        <div class="bg-slate-800/60 border border-slate-700/50 p-2.5 rounded-2xl flex flex-col gap-2">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" id="check-dia-${idx}" data-data="${item.data}" value='${JSON.stringify(item)}' class="check-dia-escala w-4 h-4 rounded accent-amber-500 shrink-0" />
+            <span class="text-xs text-slate-100 font-bold">${item.dia} • ${item.data}</span>
+          </label>
+          
+          <div class="grid grid-cols-2 gap-2 pl-6">
+            <div>
+              <span class="text-[10px] text-slate-400 block mb-0.5">Principal:</span>
+              <select id="funcao-p-${idx}" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-[11px] text-emerald-400 font-semibold outline-none">
+                ${optsPrincipal}
+              </select>
+            </div>
+            <div>
+              <span class="text-[10px] text-slate-400 block mb-0.5">Secundária (Opcional):</span>
+              <select id="funcao-s-${idx}" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-[11px] text-indigo-300 font-semibold outline-none">
+                ${optsSecundaria}
+              </select>
+            </div>
+          </div>
+        </div>
       `).join("");
     }
 
@@ -825,31 +848,31 @@
       const musico = document.getElementById("escala-nome-membro").value;
       if (!musico) return;
 
-      let funcaoEncontrada = null;
-
-      document.querySelectorAll(".check-dia-escala").forEach(chk => {
+      document.querySelectorAll(".check-dia-escala").forEach((chk, idx) => {
         const dataStr = chk.getAttribute("data-data");
         const esc = todasEscalas.find(e => e.data === dataStr);
-        const labelStatus = chk.parentElement.querySelector(".status-funcao-dia");
+        const selP = document.getElementById(`funcao-p-${idx}`);
+        const selS = document.getElementById(`funcao-s-${idx}`);
 
         if (esc && esc.integrantes && esc.integrantes.includes(musico)) {
           chk.checked = true;
           const match = esc.integrantes.match(new RegExp(`${musico}\\s*\\(([^)]+)\\)`));
           if (match) {
-            labelStatus.innerText = match[1];
-            if (!funcaoEncontrada) funcaoEncontrada = match[1];
-          } else {
-            labelStatus.innerText = "Escalado";
+            const funcaoCompleta = match[1];
+            if (funcaoCompleta.includes(" e ")) {
+              const [p, s] = funcaoCompleta.split(" e ");
+              if (selP) selP.value = p.trim();
+              if (selS) selS.value = s.trim();
+            } else {
+              if (selP) selP.value = funcaoCompleta.trim();
+              if (selS) selS.value = "";
+            }
           }
         } else {
           chk.checked = false;
-          labelStatus.innerText = "";
+          if (selS) selS.value = "";
         }
       });
-
-      if (funcaoEncontrada) {
-        document.getElementById("escala-funcao-membro").value = funcaoEncontrada;
-      }
     }
 
     async function salvarEscalaMusicoMes(e) {
@@ -859,34 +882,41 @@
       btn.innerText = "Gravando escala do mês...";
 
       const musico = document.getElementById("escala-nome-membro").value;
-      const funcao = document.getElementById("escala-funcao-membro").value;
-      const entrada = `${musico} (${funcao})`;
-
       const todasDatasMes = [];
       const datasMarcadas = [];
 
-      document.querySelectorAll(".check-dia-escala").forEach(chk => {
+      document.querySelectorAll(".check-dia-escala").forEach((chk, idx) => {
         const obj = JSON.parse(chk.value);
+        const p = document.getElementById(`funcao-p-${idx}`).value;
+        const s = document.getElementById(`funcao-s-${idx}`).value;
+        
+        const funcaoCombinada = (s && s !== p) ? `${p} e ${s}` : p;
+
         todasDatasMes.push(obj);
-        if (chk.checked) datasMarcadas.push(obj);
+        if (chk.checked) {
+          datasMarcadas.push({ ...obj, funcao: funcaoCombinada });
+        }
       });
 
-      const setMarcadas = new Set(datasMarcadas.map(d => d.data));
+      const mapaMarcadas = new Map(datasMarcadas.map(d => [d.data, d.funcao]));
+
       todasDatasMes.forEach(item => {
         let esc = todasEscalas.find(e => e.data === item.data);
-        const deveEstar = setMarcadas.has(item.data);
+        const estaMarcado = mapaMarcadas.has(item.data);
 
         if (esc) {
           let lista = (esc.integrantes || "").split(",").map(s => s.trim()).filter(Boolean);
           lista = lista.filter(s => !s.startsWith(musico + " (") && s !== musico);
-          if (deveEstar) lista.push(entrada);
+          if (estaMarcado) {
+            lista.push(`${musico} (${mapaMarcadas.get(item.data)})`);
+          }
           esc.integrantes = lista.join(", ");
-        } else if (deveEstar) {
+        } else if (estaMarcado) {
           todasEscalas.push({
             data: item.data,
             dia: item.dia,
             mes_ano: padronizarMesAno(item.mes_ano),
-            integrantes: entrada
+            integrantes: `${musico} (${mapaMarcadas.get(item.data)})`
           });
         }
       });
@@ -902,7 +932,6 @@
         body: JSON.stringify({
           acao: "atribuir_musico_datas",
           nome: musico,
-          funcao: funcao,
           todas_datas_mes: todasDatasMes,
           datas_marcadas: datasMarcadas
         })
@@ -1057,6 +1086,7 @@
         dia: document.getElementById("input-dia").value,
         ordem: document.getElementById("input-ordem").value,
         tom: document.getElementById("input-tom").value,
+        observacoes: document.getElementById("input-obs").value.trim(),
         link_youtube: document.getElementById("input-yt").value.trim(),
         link_cifra: document.getElementById("input-cifra").value.trim(),
         link_letra: document.getElementById("input-letra").value.trim(),
@@ -1096,6 +1126,7 @@
           const tit = obterCampo(m, ["titulo", "título", "titulo_final"]) || "Louvor";
           const tom = obterCampo(m, ["tom"]) || "N/D";
           const ord = obterCampo(m, ["ordem", "order"]) ? `#${obterCampo(m, ["ordem", "order"])}` : "";
+          const obs = obterCampo(m, ["observacoes", "observacao", "obs", "notas"]) || "";
           const linkYT = obterCampo(m, ["linkyoutube", "link_youtube", "youtube"]);
           const linkCifra = obterCampo(m, ["linkcifra", "link_cifra", "cifra"]);
           const linkLetra = obterCampo(m, ["linkletra", "link_letra", "letra"]);
@@ -1105,6 +1136,7 @@
             data: dataTexto,
             ordem: obterCampo(m, ["ordem", "order"]),
             tom: tom,
+            observacoes: obs,
             link_youtube: linkYT,
             link_cifra: linkCifra,
             link_letra: linkLetra,
@@ -1116,6 +1148,7 @@
               <div class="flex-1 min-w-0">
                 <span class="text-slate-100 font-semibold block leading-tight truncate">${ord} ${tit}</span>
                 <span class="text-[11px] text-emerald-400 font-medium">Tom: ${tom}</span>
+                ${obs ? `<span class="text-[10px] text-amber-300 block truncate">Nota: ${obs}</span>` : ''}
               </div>
               <div class="flex items-center gap-1.5 shrink-0">
                 <button onclick="abrirModalEditarLouvorItem('${objStr}')" class="text-indigo-300 hover:text-white p-1.5 bg-indigo-500/10 rounded-lg">
@@ -1142,6 +1175,7 @@
       document.getElementById("edit-link-yt-antigo").value = dados.link_youtube;
       document.getElementById("edit-ordem").value = dados.ordem || "1";
       document.getElementById("edit-tom").value = dados.tom || "C";
+      document.getElementById("edit-obs").value = dados.observacoes || "";
       document.getElementById("edit-yt").value = dados.link_youtube || "";
       document.getElementById("edit-cifra").value = dados.link_cifra || "";
       document.getElementById("edit-letra").value = dados.link_letra || "";
@@ -1166,6 +1200,7 @@
         link_youtube_antigo: document.getElementById("edit-link-yt-antigo").value,
         ordem: document.getElementById("edit-ordem").value,
         tom: document.getElementById("edit-tom").value,
+        observacoes: document.getElementById("edit-obs").value.trim(),
         link_youtube: document.getElementById("edit-yt").value.trim(),
         link_cifra: document.getElementById("edit-cifra").value.trim(),
         link_letra: document.getElementById("edit-letra").value.trim(),
@@ -1523,6 +1558,7 @@
             const titulo = obterCampo(m, ["titulo", "título", "titulo_final", "title"]) || "Louvor sem título";
             const tom = obterCampo(m, ["tom", "tonalidade"]) || "N/D";
             const ordem = obterCampo(m, ["ordem", "order"]) ? `#${obterCampo(m, ["ordem", "order"])}` : "";
+            const obs = obterCampo(m, ["observacoes", "observacao", "obs", "notas"]);
 
             const linkYT = obterCampo(m, ["linkyoutube", "link_youtube", "youtube", "youtube_url_final"]);
             const linkCifra = obterCampo(m, ["linkcifra", "link_cifra", "cifra"]);
@@ -1533,6 +1569,13 @@
             const thumb = ytId
               ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`
               : "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&q=80";
+
+            const blocoObsHtml = obs ? `
+              <div class="mt-2.5 flex items-start gap-1.5 bg-amber-500/10 border border-amber-500/20 text-amber-300/90 px-2.5 py-1.5 rounded-xl text-xs font-medium">
+                <i data-lucide="info" class="w-3.5 h-3.5 shrink-0 text-amber-400 mt-0.5"></i>
+                <span class="leading-snug break-words">${obs}</span>
+              </div>
+            ` : '';
 
             return `
               <div class="bg-slate-900 border border-slate-800/90 rounded-2xl overflow-hidden shadow-lg hover:border-slate-700 transition flex flex-col justify-between">
@@ -1566,6 +1609,7 @@
                     <h2 class="font-semibold text-slate-100 text-sm sm:text-base leading-snug line-clamp-2">
                       ${titulo}
                     </h2>
+                    ${blocoObsHtml}
                   </div>
                 </div>
 
@@ -1617,12 +1661,12 @@
         const botoesLiderancaCulto = isAdmin ? `
           <div class="flex items-center gap-1.5">
             ${grupo.itens.length > 0 ? `
-              <button onclick="abrirModalEditarCulto('${grupo.dataTexto}', '${grupo.diaSemana}')" class="text-[11px] font-bold text-amber-400 hover:text-amber-300 bg-amber-500/10 border border-amber-500/30 px-2 py-1 rounded-lg flex items-center gap-1 transition active:scale-95">
+              <button onclick="abrirModalEditarCulto('${grupo.dataTexto}', '${grupo.diaSemana}')" class="text-[11px] font-bold text-amber-400 hover:text-amber-300 bg-amber-500/10 border border-amber-500/30 px-2.5 py-1 rounded-lg flex items-center gap-1 transition active:scale-95">
                 <i data-lucide="edit-3" class="w-3 h-3"></i>
                 Louvores
               </button>
             ` : ''}
-            <button onclick="abrirModalEditarEquipeDia('${grupo.dataTexto}', '${grupo.diaSemana}')" class="text-[11px] font-bold text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 px-2 py-1 rounded-lg flex items-center gap-1 transition active:scale-95">
+            <button onclick="abrirModalEditarEquipeDia('${grupo.dataTexto}', '${grupo.diaSemana}')" class="text-[11px] font-bold text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-1 rounded-lg flex items-center gap-1 transition active:scale-95">
               <i data-lucide="users" class="w-3 h-3"></i>
               Equipe
             </button>
@@ -1648,7 +1692,7 @@
           <section class="space-y-3 pt-2">
             <div class="flex items-center justify-between gap-2">
               <div class="flex items-center gap-2 flex-1 min-w-0">
-                <div class="bg-indigo-950/70 border border-indigo-500/30 text-indigo-300 px-3 py-1 rounded-full text-xs font-bold tracking-wide uppercase shadow-sm truncate">
+                <div class="bg-indigo-950/70 border border-indigo-500/30 text-indigo-300 px-3.5 py-1 rounded-full text-xs font-bold tracking-wide uppercase shadow-sm truncate">
                   ${grupo.diaSemana} • ${grupo.dataTexto}
                 </div>
                 <div class="h-px bg-slate-800 flex-1"></div>
